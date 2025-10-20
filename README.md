@@ -57,6 +57,17 @@ This project is configured for easy deployment to Vercel:
 3. Vercel will automatically detect Next.js and deploy your game
 4. Your game will be live at `your-project.vercel.app`
 
+**Important**: Make sure your Vercel project settings are configured correctly:
+- **Framework Preset**: Next.js
+- **Build Command**: `npm run build` (default)
+- **Output Directory**: Leave empty (Next.js manages this automatically)
+- **Node.js Version**: 18.x or higher (automatically detected from `.node-version`)
+
+If you encounter 404 errors after deployment:
+1. Check that the build succeeded in the Vercel deployment logs
+2. Clear the deployment cache and redeploy
+3. Ensure no custom Vercel project settings override the defaults
+
 Alternatively, you can deploy using the Vercel CLI:
 
 ```bash
