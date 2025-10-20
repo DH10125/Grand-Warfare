@@ -322,16 +322,24 @@ const Game: React.FC = () => {
       )}
       
       {/* Top Bar */}
-      <div className="bg-white/90 rounded-lg p-4 mb-4 flex justify-between items-center">
-        <div className="text-xl font-bold">
-          Current Turn: {gameState.currentPlayer === 'player1' ? 'Player 1' : 'Player 2'}
+      <div className="bg-white/90 rounded-lg p-4 mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <div className="text-xl font-bold">
+            Current Turn: {gameState.currentPlayer === 'player1' ? 'Player 1' : 'Player 2'}
+          </div>
+          <button
+            onClick={endTurn}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded font-bold"
+          >
+            End Turn
+          </button>
         </div>
-        <button
-          onClick={endTurn}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded font-bold"
-        >
-          End Turn
-        </button>
+        <div className="text-sm text-gray-600">
+          {!gameState.selectedCard && '📝 Click "Add Card" buttons below to draw a card, then click a spawn hex to place it'}
+          {gameState.selectedCard && !gameState.selectedCard.position && '📍 Click a highlighted spawn hex to place your unit'}
+          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && '⚡ Unit selected! Choose Move or Attack'}
+          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap === 0 && '⏸️ This unit has already acted this turn'}
+        </div>
       </div>
 
       {/* Main Game Area */}
@@ -481,6 +489,7 @@ const Game: React.FC = () => {
 
       {/* Card Selection Area */}
       <div className="mt-4 bg-white/90 rounded-lg p-4">
+        <h3 className="text-lg font-bold mb-2">Draw Cards (Add to your hand)</h3>
         <div className="grid grid-cols-3 gap-4 mb-4">
           {CARD_TEMPLATES.map((template, index) => (
             <button
@@ -491,6 +500,16 @@ const Game: React.FC = () => {
               Add {template.name}
             </button>
           ))}
+        </div>
+        <div className="text-xs text-gray-600 border-t pt-2">
+          <strong>How to Play:</strong>
+          <ul className="list-disc list-inside">
+            <li>Click "Add" buttons to draw cards to your hand</li>
+            <li>Click a card in your hand, then click a spawn hex (P1 = left blue edge, P2 = right red edge) to place it</li>
+            <li>Units get 1 AP at the start of their owner's turn (cannot act on placement turn)</li>
+            <li>Click a unit with AP, then choose Move or Attack</li>
+            <li>Win by reducing enemy fortress to 0 HP!</li>
+          </ul>
         </div>
       </div>
 
