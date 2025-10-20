@@ -1,6 +1,4 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Configuration for Vercel deployment
-}
+const nextConfig = {}
 
 module.exports = nextConfig
