@@ -19,10 +19,10 @@ const Hexagon: React.FC<HexagonProps> = ({
 }) => {
   const { x, y } = hexToPixel(position);
   
-  // Create hexagon path
+  // Create hexagon path for pointy-topped hexes
   const points: string[] = [];
   for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 3) * i;
+    const angle = (Math.PI / 3) * i - Math.PI / 6; // Rotate by 30 degrees for pointy-top
     const px = HEX_SIZE * Math.cos(angle);
     const py = HEX_SIZE * Math.sin(angle);
     points.push(`${px},${py}`);

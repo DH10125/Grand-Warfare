@@ -2,10 +2,10 @@ import { HexPosition } from '@/types/game';
 
 export const HEX_SIZE = 40;
 
-// Convert hex coordinates to pixel coordinates
+// Convert hex coordinates to pixel coordinates (pointy-topped hexes)
 export function hexToPixel(hex: HexPosition): { x: number; y: number } {
-  const x = HEX_SIZE * (3 / 2 * hex.q);
-  const y = HEX_SIZE * (Math.sqrt(3) / 2 * hex.q + Math.sqrt(3) * hex.r);
+  const x = HEX_SIZE * (Math.sqrt(3) * hex.q + Math.sqrt(3) / 2 * hex.r);
+  const y = HEX_SIZE * (3 / 2 * hex.r);
   return { x, y };
 }
 
@@ -43,7 +43,48 @@ export function generateHexGrid(size: number): HexPosition[] {
   return hexes.slice(0, size);
 }
 
+// Generate a corridor-style grid (rectangular, left-to-right)
+export function generateCorridorGrid(length: number = 10, width: number = 4): HexPosition[] {
+  const hexes: HexPosition[] = [];
+  
+  for (let q = 0; q < length; q++) {
+    for (let r = 0; r < width; r++) {
+      hexes.push({ q, r });
+    }
+  }
+  
+  return hexes;
+}
+
+// Get spawn edge tiles for a corridor grid
+export function getSpawnEdges(length: number, width: number) {
+  const leftEdge: HexPosition[] = [];
+  const rightEdge: HexPosition[] = [];
+  
+  for (let r = 0; r < width; r++) {
+    leftEdge.push({ q: 0, r });
+    rightEdge.push({ q: length - 1, r });
+  }
+  
+  return { leftEdge, rightEdge };
+}
+
 // Check if two hex positions are equal
 export function hexEqual(a: HexPosition, b: HexPosition): boolean {
   return a.q === b.q && a.r === b.r;
+}
+
+// Calculate distance from a hex to a fortress (at edge of corridor)
+export function hexDistanceToFortress(
+  hex: HexPosition,
+  fortressOwner: 'player1' | 'player2',
+  corridorLength: number
+): number {
+  // Player 1 fortress is at the left edge (q = -1), Player 2 at right edge (q = corridorLength)
+  const fortressQ = fortressOwner === 'player1' ? -1 : corridorLength;
+  
+  // Calculate distance to the nearest point on the fortress edge
+  // For simplicity, we calculate distance to a virtual hex at the fortress position
+  // using the same r-coordinate as the unit
+  return hexDistance(hex, { q: fortressQ, r: hex.r });
 }

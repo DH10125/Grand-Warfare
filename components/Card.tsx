@@ -24,7 +24,7 @@ const Card: React.FC<CardProps> = ({
       <div
         className={`w-40 h-56 bg-gradient-to-br from-amber-100 to-amber-200 rounded-lg shadow-lg border-4 cursor-pointer transition-all ${
           isSelected ? 'border-blue-500 scale-105' : 'border-amber-400 hover:scale-102'
-        } ${card.hasActed ? 'opacity-50' : ''}`}
+        } ${card.ap === 0 ? 'opacity-50' : ''}`}
         onClick={onClick}
       >
         {/* Card Title - Top Left */}
@@ -64,10 +64,17 @@ const Card: React.FC<CardProps> = ({
         <div className="absolute top-1/2 right-1 transform -translate-y-1/2 bg-purple-500 text-white px-2 py-1 rounded-full font-bold text-xs">
           R:{card.range}
         </div>
+        
+        {/* AP indicator - shows in a badge on the left side */}
+        {card.position && (
+          <div className="absolute top-1/2 left-1 transform -translate-y-1/2 bg-green-500 text-white px-2 py-1 rounded-full font-bold text-xs">
+            AP:{card.ap}
+          </div>
+        )}
       </div>
       
       {/* Action Buttons */}
-      {showActions && !card.hasActed && (
+      {showActions && card.ap > 0 && (
         <div className="absolute -bottom-16 left-0 right-0 flex gap-2 justify-center">
           <button
             onClick={(e) => {
