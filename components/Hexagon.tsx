@@ -8,6 +8,8 @@ interface HexagonProps {
   isAttackable?: boolean;
   onClick?: () => void;
   hasCard?: boolean;
+  isSpawnEdge?: boolean;
+  spawnOwner?: 'player1' | 'player2';
 }
 
 const Hexagon: React.FC<HexagonProps> = ({ 
@@ -15,7 +17,9 @@ const Hexagon: React.FC<HexagonProps> = ({
   isHighlighted = false, 
   isAttackable = false,
   onClick,
-  hasCard = false
+  hasCard = false,
+  isSpawnEdge = false,
+  spawnOwner
 }) => {
   const { x, y } = hexToPixel(position);
   
@@ -41,6 +45,12 @@ const Hexagon: React.FC<HexagonProps> = ({
   } else if (hasCard) {
     fillColor = '#FFE4B5';
     strokeColor = '#DEB887';
+  } else if (isSpawnEdge && spawnOwner === 'player1') {
+    fillColor = '#B3D9FF';
+    strokeColor = '#4A90E2';
+  } else if (isSpawnEdge && spawnOwner === 'player2') {
+    fillColor = '#FFB3BA';
+    strokeColor = '#F87171';
   }
   
   return (

@@ -379,6 +379,8 @@ const Game: React.FC = () => {
                     isAttackable={isAttackable}
                     onClick={() => handleHexClick(hex)}
                     hasCard={hasCard}
+                    isSpawnEdge={isSpawnEdge}
+                    spawnOwner={isLeftSpawn ? 'player1' : isRightSpawn ? 'player2' : undefined}
                   />
                   {/* Show spawn edge indicator */}
                   {isSpawnEdge && !hasCard && (
@@ -387,8 +389,8 @@ const Game: React.FC = () => {
                         x="0"
                         y="5"
                         textAnchor="middle"
-                        fill={isLeftSpawn ? '#4A90E2' : '#F87171'}
-                        fontSize="10"
+                        fill={isLeftSpawn ? '#1E3A8A' : '#991B1B'}
+                        fontSize="12"
                         fontWeight="bold"
                       >
                         {isLeftSpawn ? 'P1' : 'P2'}
@@ -423,15 +425,15 @@ const Game: React.FC = () => {
                     fill={card.owner === 'player1' ? '#60A5FA' : '#F87171'}
                     opacity="0.9"
                     stroke={isSelected ? '#FFD700' : '#000'}
-                    strokeWidth={isSelected ? '3' : '2'}
+                    strokeWidth={isSelected ? '4' : '2'}
                   />
                   {/* Unit name */}
                   <text
                     x="0"
-                    y="-5"
+                    y="-8"
                     textAnchor="middle"
                     fill="white"
-                    fontSize="14"
+                    fontSize="16"
                     fontWeight="bold"
                   >
                     {card.name[0]}
@@ -442,33 +444,48 @@ const Game: React.FC = () => {
                     y="8"
                     textAnchor="middle"
                     fill="white"
-                    fontSize="10"
+                    fontSize="11"
                     fontWeight="bold"
                   >
                     {card.hitPoints}HP
                   </text>
                   {/* AP indicator */}
                   {card.ap > 0 && (
-                    <circle
-                      cx="20"
-                      cy="-20"
-                      r="8"
-                      fill="#10B981"
-                      stroke="#000"
-                      strokeWidth="1"
-                    />
+                    <>
+                      <circle
+                        cx="22"
+                        cy="-22"
+                        r="10"
+                        fill="#10B981"
+                        stroke="#000"
+                        strokeWidth="2"
+                      />
+                      <text
+                        x="22"
+                        y="-18"
+                        textAnchor="middle"
+                        fill="white"
+                        fontSize="12"
+                        fontWeight="bold"
+                      >
+                        {card.ap}
+                      </text>
+                    </>
                   )}
-                  {card.ap > 0 && (
-                    <text
-                      x="20"
-                      y="-16"
-                      textAnchor="middle"
-                      fill="white"
-                      fontSize="10"
-                      fontWeight="bold"
-                    >
-                      {card.ap}
-                    </text>
+                  {/* Stats badge when selected */}
+                  {isSelected && (
+                    <>
+                      <text
+                        x="0"
+                        y="24"
+                        textAnchor="middle"
+                        fill="white"
+                        fontSize="8"
+                        fontWeight="bold"
+                      >
+                        ATK:{card.attackDamage} SPD:{card.speed} RNG:{card.range}
+                      </text>
+                    </>
                   )}
                 </g>
               );
