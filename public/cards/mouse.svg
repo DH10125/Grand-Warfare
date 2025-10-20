@@ -1,0 +1,25 @@
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Cute kawaii mouse -->
+  <!-- Body -->
+  <ellipse cx="100" cy="120" rx="45" ry="50" fill="#C8C8C8"/>
+  <!-- Head -->
+  <circle cx="100" cy="80" r="35" fill="#C8C8C8"/>
+  <!-- Ears -->
+  <circle cx="70" cy="60" r="20" fill="#C8C8C8"/>
+  <circle cx="130" cy="60" r="20" fill="#C8C8C8"/>
+  <circle cx="70" cy="60" r="12" fill="#FFB3D9"/>
+  <circle cx="130" cy="60" r="12" fill="#FFB3D9"/>
+  <!-- Eyes -->
+  <circle cx="88" cy="75" r="5" fill="#000"/>
+  <circle cx="112" cy="75" r="5" fill="#000"/>
+  <!-- Nose -->
+  <circle cx="100" cy="85" r="4" fill="#FF69B4"/>
+  <!-- Mouth -->
+  <path d="M 100 85 L 95 92" stroke="#000" stroke-width="1.5" fill="none"/>
+  <path d="M 100 85 L 105 92" stroke="#000" stroke-width="1.5" fill="none"/>
+  <!-- Blush -->
+  <circle cx="75" cy="82" r="7" fill="#FFB3BA" opacity="0.5"/>
+  <circle cx="125" cy="82" r="7" fill="#FFB3BA" opacity="0.5"/>
+  <!-- Tail -->
+  <path d="M 140 130 Q 170 130 180 150" stroke="#C8C8C8" stroke-width="6" fill="none" stroke-linecap="round"/>
+</svg>
