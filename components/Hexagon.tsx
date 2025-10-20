@@ -8,6 +8,8 @@ interface HexagonProps {
   isAttackable?: boolean;
   onClick?: () => void;
   hasCard?: boolean;
+  isSpawnEdge?: boolean;
+  spawnOwner?: 'player1' | 'player2';
 }
 
 const Hexagon: React.FC<HexagonProps> = ({ 
@@ -15,14 +17,16 @@ const Hexagon: React.FC<HexagonProps> = ({
   isHighlighted = false, 
   isAttackable = false,
   onClick,
-  hasCard = false
+  hasCard = false,
+  isSpawnEdge = false,
+  spawnOwner
 }) => {
   const { x, y } = hexToPixel(position);
   
-  // Create hexagon path
+  // Create hexagon path for pointy-topped hexes
   const points: string[] = [];
   for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 3) * i;
+    const angle = (Math.PI / 3) * i - Math.PI / 6; // Rotate by 30 degrees for pointy-top
     const px = HEX_SIZE * Math.cos(angle);
     const py = HEX_SIZE * Math.sin(angle);
     points.push(`${px},${py}`);
@@ -41,6 +45,12 @@ const Hexagon: React.FC<HexagonProps> = ({
   } else if (hasCard) {
     fillColor = '#FFE4B5';
     strokeColor = '#DEB887';
+  } else if (isSpawnEdge && spawnOwner === 'player1') {
+    fillColor = '#B3D9FF';
+    strokeColor = '#4A90E2';
+  } else if (isSpawnEdge && spawnOwner === 'player2') {
+    fillColor = '#FFB3BA';
+    strokeColor = '#F87171';
   }
   
   return (

@@ -9,7 +9,7 @@ export interface Card {
   imageUrl: string;
   owner: 'player1' | 'player2';
   position?: HexPosition;
-  hasActed?: boolean;
+  ap: number; // Action points (0 or 1)
 }
 
 export interface HexPosition {
@@ -33,6 +33,10 @@ export interface GameState {
   currentPlayer: 'player1' | 'player2';
   selectedCard: Card | null;
   winner: 'player1' | 'player2' | null;
+  corridorLength: number; // Number of columns (q-axis)
+  corridorWidth: number;  // Number of rows (r-axis)
+  leftSpawnEdge: HexPosition[];
+  rightSpawnEdge: HexPosition[];
 }
 
-export type CardTemplate = Omit<Card, 'id' | 'owner' | 'position' | 'hasActed'>;
+export type CardTemplate = Omit<Card, 'id' | 'owner' | 'position' | 'ap'>;

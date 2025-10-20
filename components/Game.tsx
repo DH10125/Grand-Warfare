@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { GameState, Card as CardType, HexPosition } from '@/types/game';
-import { generateHexGrid, hexToPixel, hexDistance, hexEqual, HEX_SIZE } from '@/utils/hexUtils';
+import { generateCorridorGrid, hexToPixel, hexDistance, hexEqual, HEX_SIZE, getSpawnEdges, hexDistanceToFortress } from '@/utils/hexUtils';
 import { CARD_TEMPLATES } from '@/utils/cardTemplates';
 import Hexagon from './Hexagon';
 import Card from './Card';
 import Fortress from './Fortress';
+
+const CORRIDOR_LENGTH = 10;
+const CORRIDOR_WIDTH = 4;
 
 const Game: React.FC = () => {
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -15,7 +18,8 @@ const Game: React.FC = () => {
 
   // Initialize game
   useEffect(() => {
-    const hexagons = generateHexGrid(30);
+    const hexagons = generateCorridorGrid(CORRIDOR_LENGTH, CORRIDOR_WIDTH);
+    const { leftEdge, rightEdge } = getSpawnEdges(CORRIDOR_LENGTH, CORRIDOR_WIDTH);
     
     const initialState: GameState = {
       hexagons,
@@ -35,6 +39,10 @@ const Game: React.FC = () => {
       currentPlayer: 'player1',
       selectedCard: null,
       winner: null,
+      corridorLength: CORRIDOR_LENGTH,
+      corridorWidth: CORRIDOR_WIDTH,
+      leftSpawnEdge: leftEdge,
+      rightSpawnEdge: rightEdge,
     };
     
     setGameState(initialState);
@@ -48,6 +56,7 @@ const Game: React.FC = () => {
       ...template,
       id: `${owner}-${Date.now()}-${Math.random()}`,
       owner,
+      ap: 0, // Cards in hand have 0 AP until placed
     };
     
     setGameState({
@@ -65,8 +74,16 @@ const Game: React.FC = () => {
     
     if (!isValidHex || isOccupied) return;
     
+    // Check spawn edge restrictions
+    const isLeftEdge = gameState.leftSpawnEdge.some(hex => hexEqual(hex, position));
+    const isRightEdge = gameState.rightSpawnEdge.some(hex => hexEqual(hex, position));
+    
+    // Player 1 can only place on left edge, Player 2 on right edge
+    if (card.owner === 'player1' && !isLeftEdge) return;
+    if (card.owner === 'player2' && !isRightEdge) return;
+    
     const updatedCards = gameState.cards.map(c => 
-      c.id === card.id ? { ...c, position, hasActed: false } : c
+      c.id === card.id ? { ...c, position, ap: 0 } : c // Units cannot act on turn they're placed
     );
     
     setGameState({
@@ -126,9 +143,10 @@ const Game: React.FC = () => {
 
   const executeMove = (targetHex: HexPosition) => {
     if (!gameState?.selectedCard || actionMode !== 'move') return;
+    if (gameState.selectedCard.ap <= 0) return; // Check AP
     
     const updatedCards = gameState.cards.map(c =>
-      c.id === gameState.selectedCard!.id ? { ...c, position: targetHex, hasActed: true } : c
+      c.id === gameState.selectedCard!.id ? { ...c, position: targetHex, ap: 0 } : c
     );
     
     setGameState({
@@ -142,6 +160,7 @@ const Game: React.FC = () => {
 
   const executeAttack = (targetHex: HexPosition) => {
     if (!gameState?.selectedCard || actionMode !== 'attack') return;
+    if (gameState.selectedCard.ap <= 0) return; // Check AP
     
     // Find target card at hex
     const targetCard = gameState.cards.find(c => c.position && hexEqual(c.position, targetHex));
@@ -164,9 +183,9 @@ const Game: React.FC = () => {
       }
     }
     
-    // Mark card as having acted
+    // Mark card as having used AP
     updatedCards = updatedCards.map(c =>
-      c.id === gameState.selectedCard!.id ? { ...c, hasActed: true } : c
+      c.id === gameState.selectedCard!.id ? { ...c, ap: 0 } : c
     );
     
     setGameState({
@@ -182,14 +201,15 @@ const Game: React.FC = () => {
   const attackFortress = (fortressOwner: 'player1' | 'player2') => {
     if (!gameState?.selectedCard || actionMode !== 'attack') return;
     if (gameState.selectedCard.owner === fortressOwner) return;
+    if (gameState.selectedCard.ap <= 0) return; // Check AP
     
     const updatedFortresses = { ...gameState.fortresses };
     const targetFortress = updatedFortresses[fortressOwner];
     targetFortress.hitPoints -= gameState.selectedCard.attackDamage;
     
-    // Mark card as having acted
+    // Mark card as having used AP
     const updatedCards = gameState.cards.map(c =>
-      c.id === gameState.selectedCard!.id ? { ...c, hasActed: true } : c
+      c.id === gameState.selectedCard!.id ? { ...c, ap: 0 } : c
     );
     
     // Check for winner
@@ -214,8 +234,10 @@ const Game: React.FC = () => {
     
     const nextPlayer = gameState.currentPlayer === 'player1' ? 'player2' : 'player1';
     
-    // Reset all cards for next player
-    const updatedCards = gameState.cards.map(c => ({ ...c, hasActed: false }));
+    // Reset AP for all cards owned by the next player
+    const updatedCards = gameState.cards.map(c => 
+      c.owner === nextPlayer && c.position ? { ...c, ap: 1 } : c
+    );
     
     setGameState({
       ...gameState,
@@ -265,12 +287,19 @@ const Game: React.FC = () => {
 
   // Check if fortress can be attacked
   const canAttackFortress = (fortressOwner: 'player1' | 'player2'): boolean => {
-    if (!gameState.selectedCard || actionMode !== 'attack') return false;
+    if (!gameState?.selectedCard || actionMode !== 'attack') return false;
     if (gameState.selectedCard.owner === fortressOwner) return false;
+    if (!gameState.selectedCard.position) return false;
+    if (gameState.selectedCard.ap <= 0) return false;
     
-    // Check if any card of the fortress owner is adjacent to board edge
-    // For simplicity, allow attacking fortress if in attack mode
-    return true;
+    // Check if unit is within range of the fortress
+    const distance = hexDistanceToFortress(
+      gameState.selectedCard.position,
+      fortressOwner,
+      gameState.corridorLength
+    );
+    
+    return distance <= gameState.selectedCard.range;
   };
 
   return (
@@ -293,16 +322,24 @@ const Game: React.FC = () => {
       )}
       
       {/* Top Bar */}
-      <div className="bg-white/90 rounded-lg p-4 mb-4 flex justify-between items-center">
-        <div className="text-xl font-bold">
-          Current Turn: {gameState.currentPlayer === 'player1' ? 'Player 1' : 'Player 2'}
+      <div className="bg-white/90 rounded-lg p-4 mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <div className="text-xl font-bold">
+            Current Turn: {gameState.currentPlayer === 'player1' ? 'Player 1' : 'Player 2'}
+          </div>
+          <button
+            onClick={endTurn}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded font-bold"
+          >
+            End Turn
+          </button>
         </div>
-        <button
-          onClick={endTurn}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded font-bold"
-        >
-          End Turn
-        </button>
+        <div className="text-sm text-gray-600">
+          {!gameState.selectedCard && '📝 Click "Add Card" buttons below to draw a card, then click a spawn hex to place it'}
+          {gameState.selectedCard && !gameState.selectedCard.position && '📍 Click a highlighted spawn hex to place your unit'}
+          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && '⚡ Unit selected! Choose Move or Attack'}
+          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap === 0 && '⏸️ This unit has already acted this turn'}
+        </div>
       </div>
 
       {/* Main Game Area */}
@@ -330,16 +367,37 @@ const Game: React.FC = () => {
               const hasCard = cardsOnBoard.some(c => c.position && hexEqual(c.position, hex));
               const isHighlighted = actionMode === 'move' && highlightedHexes.some(h => hexEqual(h, hex));
               const isAttackable = actionMode === 'attack' && highlightedHexes.some(h => hexEqual(h, hex));
+              const isLeftSpawn = gameState.leftSpawnEdge.some(h => hexEqual(h, hex));
+              const isRightSpawn = gameState.rightSpawnEdge.some(h => hexEqual(h, hex));
+              const isSpawnEdge = isLeftSpawn || isRightSpawn;
               
               return (
-                <Hexagon
-                  key={`${hex.q}-${hex.r}`}
-                  position={hex}
-                  isHighlighted={isHighlighted}
-                  isAttackable={isAttackable}
-                  onClick={() => handleHexClick(hex)}
-                  hasCard={hasCard}
-                />
+                <g key={`${hex.q}-${hex.r}`}>
+                  <Hexagon
+                    position={hex}
+                    isHighlighted={isHighlighted}
+                    isAttackable={isAttackable}
+                    onClick={() => handleHexClick(hex)}
+                    hasCard={hasCard}
+                    isSpawnEdge={isSpawnEdge}
+                    spawnOwner={isLeftSpawn ? 'player1' : isRightSpawn ? 'player2' : undefined}
+                  />
+                  {/* Show spawn edge indicator */}
+                  {isSpawnEdge && !hasCard && (
+                    <g transform={`translate(${hexToPixel(hex).x}, ${hexToPixel(hex).y})`}>
+                      <text
+                        x="0"
+                        y="5"
+                        textAnchor="middle"
+                        fill={isLeftSpawn ? '#1E3A8A' : '#991B1B'}
+                        fontSize="12"
+                        fontWeight="bold"
+                      >
+                        {isLeftSpawn ? 'P1' : 'P2'}
+                      </text>
+                    </g>
+                  )}
+                </g>
               );
             })}
             
@@ -347,26 +405,88 @@ const Game: React.FC = () => {
             {cardsOnBoard.map(card => {
               if (!card.position) return null;
               const { x, y } = hexToPixel(card.position);
+              const isSelected = gameState.selectedCard?.id === card.id;
               
               return (
-                <g key={card.id} transform={`translate(${x - 20}, ${y - 28})`}>
+                <g 
+                  key={card.id} 
+                  transform={`translate(${x}, ${y})`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    selectCard(card);
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {/* Unit circle */}
                   <circle
-                    cx="20"
-                    cy="28"
-                    r="25"
+                    cx="0"
+                    cy="0"
+                    r="30"
                     fill={card.owner === 'player1' ? '#60A5FA' : '#F87171'}
-                    opacity="0.8"
+                    opacity="0.9"
+                    stroke={isSelected ? '#FFD700' : '#000'}
+                    strokeWidth={isSelected ? '4' : '2'}
                   />
+                  {/* Unit name */}
                   <text
-                    x="20"
-                    y="32"
+                    x="0"
+                    y="-8"
                     textAnchor="middle"
                     fill="white"
-                    fontSize="12"
+                    fontSize="16"
                     fontWeight="bold"
                   >
                     {card.name[0]}
                   </text>
+                  {/* HP bar */}
+                  <text
+                    x="0"
+                    y="8"
+                    textAnchor="middle"
+                    fill="white"
+                    fontSize="11"
+                    fontWeight="bold"
+                  >
+                    {card.hitPoints}HP
+                  </text>
+                  {/* AP indicator */}
+                  {card.ap > 0 && (
+                    <>
+                      <circle
+                        cx="22"
+                        cy="-22"
+                        r="10"
+                        fill="#10B981"
+                        stroke="#000"
+                        strokeWidth="2"
+                      />
+                      <text
+                        x="22"
+                        y="-18"
+                        textAnchor="middle"
+                        fill="white"
+                        fontSize="12"
+                        fontWeight="bold"
+                      >
+                        {card.ap}
+                      </text>
+                    </>
+                  )}
+                  {/* Stats badge when selected */}
+                  {isSelected && (
+                    <>
+                      <text
+                        x="0"
+                        y="24"
+                        textAnchor="middle"
+                        fill="white"
+                        fontSize="8"
+                        fontWeight="bold"
+                      >
+                        ATK:{card.attackDamage} SPD:{card.speed} RNG:{card.range}
+                      </text>
+                    </>
+                  )}
                 </g>
               );
             })}
@@ -386,6 +506,7 @@ const Game: React.FC = () => {
 
       {/* Card Selection Area */}
       <div className="mt-4 bg-white/90 rounded-lg p-4">
+        <h3 className="text-lg font-bold mb-2">Draw Cards (Add to your hand)</h3>
         <div className="grid grid-cols-3 gap-4 mb-4">
           {CARD_TEMPLATES.map((template, index) => (
             <button
@@ -396,6 +517,16 @@ const Game: React.FC = () => {
               Add {template.name}
             </button>
           ))}
+        </div>
+        <div className="text-xs text-gray-600 border-t pt-2">
+          <strong>How to Play:</strong>
+          <ul className="list-disc list-inside">
+            <li>Click "Add" buttons to draw cards to your hand</li>
+            <li>Click a card in your hand, then click a spawn hex (P1 = left blue edge, P2 = right red edge) to place it</li>
+            <li>Units get 1 AP at the start of their owner's turn (cannot act on placement turn)</li>
+            <li>Click a unit with AP, then choose Move or Attack</li>
+            <li>Win by reducing enemy fortress to 0 HP!</li>
+          </ul>
         </div>
       </div>
 
@@ -439,7 +570,7 @@ const Game: React.FC = () => {
       </div>
 
       {/* Selected Card Actions */}
-      {gameState.selectedCard && gameState.selectedCard.position && !gameState.selectedCard.hasActed && (
+      {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && (
         <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg p-4 shadow-lg">
           <div className="flex gap-4">
             <button
