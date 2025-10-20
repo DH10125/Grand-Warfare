@@ -93,7 +93,7 @@ In your Vercel project dashboard:
 ### 5. Check for Custom Configurations
 
 Ensure you don't have:
-- A `vercel.json` file with `outputDirectory` set (this is incorrect for Next.js)
+- A `vercel.json` file with `outputDirectory` set (this is incorrect for Next.js - the minimal `vercel.json` in this project only sets the framework preset, which is correct)
 - Custom build scripts that might interfere
 - Incorrect `output` setting in `next.config.js` (should be empty or omitted for Vercel)
 
@@ -174,7 +174,7 @@ This repository includes:
 
 - ✅ `.node-version` - Forces Node.js 18.18.0
 - ✅ `package.json` with `engines` field
-- ✅ `vercel.json` with framework preset
+- ✅ `vercel.json` with Next.js framework preset
 - ✅ Standard Next.js 15 App Router structure
 - ✅ All source files and assets committed
 
