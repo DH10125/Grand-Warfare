@@ -17,14 +17,35 @@ const Game: React.FC = () => {
   const [highlightedHexes, setHighlightedHexes] = useState<HexPosition[]>([]);
   const [notification, setNotification] = useState<string>('');
 
+  // Helper function to deal random cards to a player
+  const dealRandomCards = (owner: 'player1' | 'player2', count: number): CardType[] => {
+    const dealtCards: CardType[] = [];
+    for (let i = 0; i < count; i++) {
+      const randomIndex = Math.floor(Math.random() * CARD_TEMPLATES.length);
+      const template = CARD_TEMPLATES[randomIndex];
+      const newCard: CardType = {
+        ...template,
+        id: `${owner}-initial-${i}-${Date.now()}-${Math.random()}`,
+        owner,
+        ap: 0, // Cards in hand have 0 AP until placed
+      };
+      dealtCards.push(newCard);
+    }
+    return dealtCards;
+  };
+
   // Initialize game
   useEffect(() => {
     const hexagons = generateCorridorGridWithRewards(CORRIDOR_LENGTH, CORRIDOR_WIDTH);
     const { leftEdge, rightEdge } = getSpawnEdges(CORRIDOR_LENGTH, CORRIDOR_WIDTH);
     
+    // Deal initial cards to both players (3 cards each)
+    const player1InitialCards = dealRandomCards('player1', 3);
+    const player2InitialCards = dealRandomCards('player2', 3);
+    
     const initialState: GameState = {
       hexagons,
-      cards: [],
+      cards: [...player1InitialCards, ...player2InitialCards],
       fortresses: {
         player1: {
           hitPoints: 3000,
@@ -49,22 +70,7 @@ const Game: React.FC = () => {
     setGameState(initialState);
   }, []);
 
-  const addCardToHand = (owner: 'player1' | 'player2', templateIndex: number) => {
-    if (!gameState) return;
-    
-    const template = CARD_TEMPLATES[templateIndex];
-    const newCard: CardType = {
-      ...template,
-      id: `${owner}-${Date.now()}-${Math.random()}`,
-      owner,
-      ap: 0, // Cards in hand have 0 AP until placed
-    };
-    
-    setGameState({
-      ...gameState,
-      cards: [...gameState.cards, newCard],
-    });
-  };
+
 
   const placeCard = (card: CardType, position: HexPosition) => {
     if (!gameState) return;
@@ -97,12 +103,29 @@ const Game: React.FC = () => {
   const selectCard = (card: CardType) => {
     if (!gameState || card.owner !== gameState.currentPlayer) return;
     
+    const newSelectedCard = card.id === gameState.selectedCard?.id ? null : card;
+    
     setGameState({
       ...gameState,
-      selectedCard: card.id === gameState.selectedCard?.id ? null : card,
+      selectedCard: newSelectedCard,
     });
     setActionMode(null);
-    setHighlightedHexes([]);
+    
+    // Highlight spawn hexes if card is in hand (no position)
+    if (newSelectedCard && !newSelectedCard.position) {
+      const spawnEdge = newSelectedCard.owner === 'player1' 
+        ? gameState.leftSpawnEdge 
+        : gameState.rightSpawnEdge;
+      
+      // Filter out occupied spawn hexes
+      const availableSpawnHexes = spawnEdge.filter(hex => 
+        !gameState.cards.some(c => c.position && hexEqual(c.position, hex))
+      );
+      
+      setHighlightedHexes(availableSpawnHexes);
+    } else {
+      setHighlightedHexes([]);
+    }
   };
 
   const handleMove = () => {
@@ -385,10 +408,10 @@ const Game: React.FC = () => {
           </button>
         </div>
         <div className="text-sm text-gray-600">
-          {!gameState.selectedCard && '📝 Click "Add Card" buttons below to draw a card, then click a spawn hex to place it'}
-          {gameState.selectedCard && !gameState.selectedCard.position && '📍 Click a highlighted spawn hex to place your unit'}
-          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && '⚡ Unit selected! Choose Move or Attack. Move onto ? hexes to reveal hidden card rewards!'}
-          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap === 0 && '⏸️ This unit has already acted this turn'}
+          {!gameState.selectedCard && '📝 Select a card from your hand below to place it on the board'}
+          {gameState.selectedCard && !gameState.selectedCard.position && '📍 Click a highlighted blue spawn hex (P1) or red spawn hex (P2) to place your unit'}
+          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && '⚡ Unit selected! Click "Move" to move (collect cards from ? hexes) or "Attack" to attack enemies'}
+          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap === 0 && '⏸️ This unit has already acted this turn - select another unit or end your turn'}
         </div>
       </div>
 
@@ -415,8 +438,9 @@ const Game: React.FC = () => {
             {/* Render hexagons */}
             {gameState.hexagons.map((hexTile, index) => {
               const hasCard = cardsOnBoard.some(c => c.position && hexEqual(c.position, hexTile));
-              const isHighlighted = actionMode === 'move' && highlightedHexes.some(h => hexEqual(h, hexTile));
-              const isAttackable = actionMode === 'attack' && highlightedHexes.some(h => hexEqual(h, hexTile));
+              const isPlacementTarget = !actionMode && gameState.selectedCard && !gameState.selectedCard.position && highlightedHexes.some(h => hexEqual(h, hexTile));
+              const isHighlighted = Boolean((actionMode === 'move' || isPlacementTarget) && highlightedHexes.some(h => hexEqual(h, hexTile)));
+              const isAttackable = Boolean(actionMode === 'attack' && highlightedHexes.some(h => hexEqual(h, hexTile)));
               const isLeftSpawn = gameState.leftSpawnEdge.some(h => hexEqual(h, hexTile));
               const isRightSpawn = gameState.rightSpawnEdge.some(h => hexEqual(h, hexTile));
               const isSpawnEdge = isLeftSpawn || isRightSpawn;
@@ -554,30 +578,19 @@ const Game: React.FC = () => {
         </div>
       </div>
 
-      {/* Card Selection Area */}
+      {/* Game Instructions */}
       <div className="mt-4 bg-white/90 rounded-lg p-4">
-        <h3 className="text-lg font-bold mb-2">Draw Cards (Add to your hand)</h3>
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          {CARD_TEMPLATES.map((template, index) => (
-            <button
-              key={template.name}
-              onClick={() => addCardToHand(gameState.currentPlayer, index)}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold"
-            >
-              Add {template.name}
-            </button>
-          ))}
-        </div>
-        <div className="text-xs text-gray-600 border-t pt-2">
-          <strong>How to Play:</strong>
-          <ul className="list-disc list-inside">
-            <li>Click "Add" buttons to draw cards to your hand</li>
-            <li>Click a card in your hand, then click a spawn hex (P1 = left blue edge, P2 = right red edge) to place it</li>
-            <li>Units get 1 AP at the start of their owner's turn (cannot act on placement turn)</li>
-            <li>Click a unit with AP, then choose Move or Attack</li>
-            <li><strong>🎴 Hidden Rewards:</strong> Hexes marked with "?" contain hidden cards. Move onto them to reveal and collect!</li>
-            <li><strong>🌟 Strategy:</strong> Plan your path to collect powerful cards while advancing toward the enemy fortress</li>
-            <li>Win by reducing enemy fortress to 0 HP!</li>
+        <h3 className="text-lg font-bold mb-2">How to Play</h3>
+        <div className="text-sm text-gray-700">
+          <ul className="list-disc list-inside space-y-1">
+            <li><strong>Starting:</strong> Each player begins with 3 random cards dealt to their hand</li>
+            <li><strong>Place Units:</strong> Click a card in your hand, then click a highlighted spawn hex (P1 = left blue edge, P2 = right red edge) to place it on the board</li>
+            <li><strong>Action Points:</strong> Units get 1 AP at the start of their owner's turn (units cannot act on the turn they're placed)</li>
+            <li><strong>Move:</strong> Select a unit with AP, click "Move" button, then click a highlighted hex to move there</li>
+            <li><strong>Attack:</strong> Select a unit with AP, click "Attack" button, then click a highlighted enemy unit or fortress to attack</li>
+            <li><strong>🎴 Collect Cards:</strong> Move onto unrevealed hexes (marked with "?") to reveal and collect hidden card rewards!</li>
+            <li><strong>🌟 Strategy:</strong> Balance advancing toward the enemy fortress with collecting powerful cards from the map</li>
+            <li><strong>Victory:</strong> Reduce your opponent's fortress to 0 HP to win!</li>
           </ul>
         </div>
       </div>
