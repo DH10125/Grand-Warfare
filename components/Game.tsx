@@ -517,7 +517,7 @@ const Game: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 p-4"
+      className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 p-2 sm:p-4"
       onMouseMove={(e) => {
         setMousePosition({ x: e.clientX, y: e.clientY });
       }}
@@ -527,21 +527,21 @@ const Game: React.FC = () => {
       
       {/* Reward Notification */}
       {notification && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-8 py-4 rounded-lg shadow-lg z-50 text-xl font-bold animate-bounce">
+        <div className="fixed top-16 sm:top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 sm:px-8 py-2 sm:py-4 rounded-lg shadow-lg z-50 text-lg sm:text-xl font-bold animate-bounce max-w-[90vw] text-center">
           {notification}
         </div>
       )}
       
       {/* Winner Banner */}
       {gameState.winner && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-lg text-center">
-            <h2 className="text-4xl font-bold mb-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 sm:p-8 rounded-lg text-center max-w-sm w-full">
+            <h2 className="text-2xl sm:text-4xl font-bold mb-4">
               {gameState.winner === 'player1' ? 'Player 1' : 'Player 2'} Wins!
             </h2>
             <button
               onClick={() => window.location.reload()}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded font-bold"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded font-bold text-lg touch-manipulation"
             >
               Play Again
             </button>
@@ -550,10 +550,10 @@ const Game: React.FC = () => {
       )}
       
       {/* Top Bar */}
-      <div className="bg-white/90 rounded-lg p-4 mb-4 shadow-xl">
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex items-center gap-4">
-            <div className="text-2xl font-bold">
+      <div className="bg-white/90 rounded-lg p-3 sm:p-4 mb-2 sm:mb-4 shadow-xl">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0 mb-2">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="text-lg sm:text-2xl font-bold text-center">
               Current Turn: <span className={gameState.currentPlayer === 'player1' ? 'text-blue-600' : 'text-red-600'}>
                 {gameState.currentPlayer === 'player1' ? 'Player 1' : 'Player 2'}
               </span>
@@ -561,7 +561,7 @@ const Game: React.FC = () => {
             {/* Help Button */}
             <button
               onClick={() => setShowHelp(true)}
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-bold text-xl px-5 py-2 rounded-full shadow-lg transform hover:scale-110 transition-all"
+              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-bold text-lg sm:text-xl px-4 sm:px-5 py-2 rounded-full shadow-lg transform hover:scale-110 transition-all touch-manipulation"
               title="Show game instructions and tips"
             >
               ❓
@@ -569,12 +569,12 @@ const Game: React.FC = () => {
           </div>
           <button
             onClick={endTurn}
-            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-8 py-3 rounded-lg font-bold text-xl shadow-lg transform hover:scale-105 transition-all"
+            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl shadow-lg transform hover:scale-105 transition-all touch-manipulation w-full sm:w-auto"
           >
             End Turn ➡️
           </button>
         </div>
-        <div className="text-base text-gray-700 font-semibold">
+        <div className="text-sm sm:text-base text-gray-700 font-semibold text-center sm:text-left">
           {!gameState.selectedCard && '📝 Select a card from your hand below to place it on the board'}
           {gameState.selectedCard && !gameState.selectedCard.position && '📍 Click a highlighted blue spawn hex (P1) or red spawn hex (P2) to place your unit'}
           {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && '⚡ Unit selected! Blue highlights show movement options, red highlights show attack targets. Click any highlighted hex to perform that action!'}
@@ -582,18 +582,17 @@ const Game: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Game Area */}
-      <div className="flex gap-4 mb-4">
-        {/* Left Side - Player 1 Card Detail or Fortress */}
-        <div className="flex-shrink-0 w-64">
+      {/* Main Game Area - Responsive Layout */}
+      <div className="flex flex-col lg:flex-row gap-2 sm:gap-4 mb-2 sm:mb-4">{/* Left Side - Player 1 Card Detail or Fortress - Mobile: Top */}
+        <div className="lg:flex-shrink-0 lg:w-64 order-2 lg:order-1">
           {cardDetailView && cardDetailView.owner === 'player1' ? (
-            <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-3xl shadow-2xl border-8 border-amber-600 overflow-hidden bg-opacity-95">
+            <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl border-4 sm:border-8 border-amber-600 overflow-hidden bg-opacity-95 w-full">
               {/* Card Frame - Top Ornamental Border */}
-              <div className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 h-4"></div>
+              <div className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 h-2 sm:h-4"></div>
               
               {/* Card Header */}
-              <div className="bg-gradient-to-r from-amber-700 to-amber-800 px-4 py-3 border-b-4 border-amber-900">
-                <h2 className="text-2xl font-bold text-center text-white drop-shadow-lg">
+              <div className="bg-gradient-to-r from-amber-700 to-amber-800 px-2 sm:px-4 py-2 sm:py-3 border-b-2 sm:border-b-4 border-amber-900">
+                <h2 className="text-lg sm:text-2xl font-bold text-center text-white drop-shadow-lg">
                   {cardDetailView.name}
                 </h2>
               </div>
@@ -679,14 +678,20 @@ const Game: React.FC = () => {
           )}
         </div>
 
-        {/* Game Board */}
-        <div className="flex-1 bg-white/10 rounded-lg p-4 flex items-center justify-center min-h-[500px] relative">
-          <svg
-            width={width}
-            height={height}
-            viewBox={`${minX} ${minY} ${width} ${height}`}
-            className="mx-auto max-w-full h-auto"
-          >
+        {/* Game Board - Mobile: Takes full width, Desktop: Center */}
+        <div className="flex-1 bg-white/10 rounded-lg p-2 sm:p-4 flex items-center justify-center min-h-[300px] sm:min-h-[500px] relative order-1 lg:order-2">
+          <div className="w-full max-w-full overflow-auto">
+            <svg
+              width={width}
+              height={height}
+              viewBox={`${minX} ${minY} ${width} ${height}`}
+              className="mx-auto w-full h-auto min-h-[300px] sm:min-h-[400px] touch-manipulation"
+              style={{ 
+                maxWidth: '100%',
+                height: 'auto',
+                minHeight: '300px'
+              }}
+            >
             {/* Render hexagons */}
             {gameState.hexagons.map((hexTile, index) => {
               const hasCard = cardsOnBoard.some(c => c.position && hexEqual(c.position, hexTile));
@@ -824,10 +829,11 @@ const Game: React.FC = () => {
             })}
             
           </svg>
+          </div>
         </div>
 
-        {/* Right Side - Player 2 Card Detail or Fortress */}
-        <div className="flex-shrink-0 w-64">
+        {/* Right Side - Player 2 Card Detail or Fortress - Mobile: Bottom */}
+        <div className="lg:flex-shrink-0 lg:w-64 order-3">
           {cardDetailView && cardDetailView.owner === 'player2' ? (
             <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-3xl shadow-2xl border-8 border-amber-600 overflow-hidden bg-opacity-95">
               {/* Card Frame - Top Ornamental Border */}
@@ -922,14 +928,14 @@ const Game: React.FC = () => {
         </div>
       </div>
 
-      {/* Player Hands */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      {/* Player Hands - Mobile: Stacked, Desktop: Side by side */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-2 sm:mb-4">
         {/* Player 1 Hand */}
-        <div className="bg-gradient-to-br from-blue-500/40 to-blue-700/40 rounded-xl p-4 shadow-xl border-4 border-blue-400">
-          <h3 className="text-white font-bold text-xl mb-3 text-center">🔵 Player 1 Hand</h3>
-          <div className="flex gap-4 flex-wrap justify-center">
+        <div className="bg-gradient-to-br from-blue-500/40 to-blue-700/40 rounded-xl p-3 sm:p-4 shadow-xl border-2 sm:border-4 border-blue-400">
+          <h3 className="text-white font-bold text-lg sm:text-xl mb-2 sm:mb-3 text-center">🔵 Player 1 Hand</h3>
+          <div className="flex gap-2 sm:gap-4 flex-wrap justify-center">
             {player1Hand.map(card => (
-              <div key={card.id}>
+              <div key={card.id} className="touch-manipulation">
                 <Card
                   card={card}
                   isSelected={gameState.selectedCard?.id === card.id}
@@ -939,17 +945,17 @@ const Game: React.FC = () => {
               </div>
             ))}
             {player1Hand.length === 0 && (
-              <p className="text-white/70 text-center w-full py-4">No cards in hand</p>
+              <p className="text-white/70 text-center w-full py-3 sm:py-4 text-sm sm:text-base">No cards in hand</p>
             )}
           </div>
         </div>
 
         {/* Player 2 Hand */}
-        <div className="bg-gradient-to-br from-red-500/40 to-red-700/40 rounded-xl p-4 shadow-xl border-4 border-red-400">
-          <h3 className="text-white font-bold text-xl mb-3 text-center">🔴 Player 2 Hand</h3>
-          <div className="flex gap-4 flex-wrap justify-center">
+        <div className="bg-gradient-to-br from-red-500/40 to-red-700/40 rounded-xl p-3 sm:p-4 shadow-xl border-2 sm:border-4 border-red-400">
+          <h3 className="text-white font-bold text-lg sm:text-xl mb-2 sm:mb-3 text-center">🔴 Player 2 Hand</h3>
+          <div className="flex gap-2 sm:gap-4 flex-wrap justify-center">
             {player2Hand.map(card => (
-              <div key={card.id}>
+              <div key={card.id} className="touch-manipulation">
                 <Card
                   card={card}
                   isSelected={gameState.selectedCard?.id === card.id}
@@ -959,7 +965,7 @@ const Game: React.FC = () => {
               </div>
             ))}
             {player2Hand.length === 0 && (
-              <p className="text-white/70 text-center w-full py-4">No cards in hand</p>
+              <p className="text-white/70 text-center w-full py-3 sm:py-4 text-sm sm:text-base">No cards in hand</p>
             )}
           </div>
         </div>

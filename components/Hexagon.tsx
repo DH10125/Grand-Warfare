@@ -98,9 +98,21 @@ const Hexagon: React.FC<HexagonProps> = ({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{ cursor: onClick ? 'pointer' : 'default' }}
+      className="touch-manipulation"
     >
       {tooltipText && (
         <title>{tooltipText}</title>
+      )}
+      {/* Invisible larger hit area for better touch targeting */}
+      {onClick && (
+        <circle
+          cx="0"
+          cy="0"
+          r={HEX_SIZE + 10}
+          fill="transparent"
+          stroke="none"
+          style={{ cursor: 'pointer' }}
+        />
       )}
       <polygon
         points={pathData}
@@ -114,8 +126,8 @@ const Hexagon: React.FC<HexagonProps> = ({
           points={pathData}
           fill="none"
           stroke={isAttackable ? '#FF0000' : '#0000FF'}
-          strokeWidth="3"
-          opacity="0.8"
+          strokeWidth="4"
+          opacity="0.9"
         />
       )}
       {/* Show question mark for unrevealed hexes */}
