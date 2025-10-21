@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { GameState, Card as CardType, HexPosition, HexTile } from '@/types/game';
 import { generateCorridorGridWithRewards, hexToPixel, hexDistance, hexEqual, HEX_SIZE, getSpawnEdges, hexDistanceToFortress } from '@/utils/hexUtils';
 import { CARD_TEMPLATES } from '@/utils/cardTemplates';
@@ -8,7 +9,6 @@ import Hexagon from './Hexagon';
 import Card from './Card';
 import Fortress from './Fortress';
 import HelpPopup from './HelpPopup';
-import CardDetailPopup from './CardDetailPopup';
 
 const CORRIDOR_LENGTH = 10;
 const CORRIDOR_WIDTH = 4;
@@ -21,6 +21,7 @@ const Game: React.FC = () => {
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const [cardDetailView, setCardDetailView] = useState<CardType | null>(null);
   const [hasShownWelcome, setHasShownWelcome] = useState<boolean>(false);
+  const [selectedHexPosition, setSelectedHexPosition] = useState<HexPosition | null>(null);
 
   // Helper function to deal random cards to a player
   const dealRandomCards = (owner: 'player1' | 'player2', count: number): CardType[] => {
@@ -120,6 +121,19 @@ const Game: React.FC = () => {
     });
     setActionMode(null);
     
+    // Show card detail on the side
+    if (newSelectedCard) {
+      setCardDetailView(newSelectedCard);
+      if (newSelectedCard.position) {
+        setSelectedHexPosition(newSelectedCard.position);
+      } else {
+        setSelectedHexPosition(null);
+      }
+    } else {
+      setCardDetailView(null);
+      setSelectedHexPosition(null);
+    }
+    
     // Highlight spawn hexes if card is in hand (no position)
     if (newSelectedCard && !newSelectedCard.position) {
       const spawnEdge = newSelectedCard.owner === 'player1' 
@@ -138,15 +152,7 @@ const Game: React.FC = () => {
   };
 
   const handleCardClick = (card: CardType, event?: React.MouseEvent) => {
-    // Check if it's a right-click or if user is holding Ctrl/Cmd
-    const isDetailView = event?.button === 2 || event?.ctrlKey || event?.metaKey;
-    
-    if (isDetailView) {
-      event?.preventDefault();
-      setCardDetailView(card);
-    } else {
-      selectCard(card);
-    }
+    selectCard(card);
   };
 
   const handleMove = () => {
@@ -242,6 +248,8 @@ const Game: React.FC = () => {
     });
     setActionMode(null);
     setHighlightedHexes([]);
+    setCardDetailView(null);
+    setSelectedHexPosition(null);
     
     // Show reward notification
     if (rewardMessage) {
@@ -321,6 +329,8 @@ const Game: React.FC = () => {
     });
     setActionMode(null);
     setHighlightedHexes([]);
+    setCardDetailView(null);
+    setSelectedHexPosition(null);
   };
 
   const attackFortress = (fortressOwner: 'player1' | 'player2') => {
@@ -352,6 +362,8 @@ const Game: React.FC = () => {
     });
     setActionMode(null);
     setHighlightedHexes([]);
+    setCardDetailView(null);
+    setSelectedHexPosition(null);
   };
 
   const endTurn = () => {
@@ -372,6 +384,8 @@ const Game: React.FC = () => {
     });
     setActionMode(null);
     setHighlightedHexes([]);
+    setCardDetailView(null);
+    setSelectedHexPosition(null);
   };
 
   const handleHexClick = (hex: HexPosition) => {
@@ -429,9 +443,8 @@ const Game: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 p-4">
-      {/* Help and Card Detail Popups */}
+      {/* Help Popup */}
       <HelpPopup isOpen={showHelp} onClose={() => setShowHelp(false)} />
-      <CardDetailPopup card={cardDetailView} onClose={() => setCardDetailView(null)} />
       
       {/* Reward Notification */}
       {notification && (
@@ -485,25 +498,121 @@ const Game: React.FC = () => {
         <div className="text-base text-gray-700 font-semibold">
           {!gameState.selectedCard && '📝 Select a card from your hand below to place it on the board'}
           {gameState.selectedCard && !gameState.selectedCard.position && '📍 Click a highlighted blue spawn hex (P1) or red spawn hex (P2) to place your unit'}
-          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && '⚡ Unit selected! Click "Move" to move (collect cards from ? hexes) or "Attack" to attack enemies'}
+          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && '⚡ Unit selected! Click "Move" or "Attack" above the unit to choose your action'}
           {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap === 0 && '⏸️ This unit has already acted this turn - select another unit or end your turn'}
         </div>
       </div>
 
       {/* Main Game Area */}
       <div className="flex gap-4 mb-4">
-        {/* Left Fortress */}
-        <div className="flex-shrink-0">
-          <Fortress 
-            fortress={gameState.fortresses.player1} 
-            side="left"
-            isAttackable={canAttackFortress('player1')}
-            onClick={() => canAttackFortress('player1') && attackFortress('player1')}
-          />
+        {/* Left Side - Player 1 Card Detail or Fortress */}
+        <div className="flex-shrink-0 w-64">
+          {cardDetailView && cardDetailView.owner === 'player1' ? (
+            <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-3xl shadow-2xl border-8 border-amber-600 overflow-hidden bg-opacity-95">
+              {/* Card Frame - Top Ornamental Border */}
+              <div className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 h-4"></div>
+              
+              {/* Card Header */}
+              <div className="bg-gradient-to-r from-amber-700 to-amber-800 px-4 py-3 border-b-4 border-amber-900">
+                <h2 className="text-2xl font-bold text-center text-white drop-shadow-lg">
+                  {cardDetailView.name}
+                </h2>
+              </div>
+
+              {/* Card Image Section */}
+              <div className="bg-white p-4 flex items-center justify-center border-b-4 border-amber-600">
+                <div className="relative w-48 h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl border-4 border-amber-400 shadow-inner flex items-center justify-center overflow-hidden">
+                  <Image 
+                    src={cardDetailView.imageUrl} 
+                    alt={cardDetailView.name}
+                    width={180}
+                    height={180}
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+
+              {/* Card Stats Section */}
+              <div className="px-4 py-3 bg-amber-50">
+                <h3 className="text-lg font-bold text-amber-900 mb-2 text-center border-b-2 border-amber-400 pb-1">
+                  ⚔️ Unit Statistics
+                </h3>
+                
+                <div className="space-y-2">
+                  {/* HP */}
+                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-red-300">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">❤️</span>
+                      <span className="font-bold text-gray-700 text-sm">HP:</span>
+                    </div>
+                    <span className="text-lg font-bold text-red-600">
+                      {cardDetailView.hitPoints}/{cardDetailView.maxHitPoints}
+                    </span>
+                  </div>
+
+                  {/* Attack Damage */}
+                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-orange-300">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">⚔️</span>
+                      <span className="font-bold text-gray-700 text-sm">Attack:</span>
+                    </div>
+                    <span className="text-lg font-bold text-orange-600">
+                      {cardDetailView.attackDamage}
+                    </span>
+                  </div>
+
+                  {/* Speed */}
+                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-blue-300">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🏃</span>
+                      <span className="font-bold text-gray-700 text-sm">Speed:</span>
+                    </div>
+                    <span className="text-lg font-bold text-blue-600">
+                      {cardDetailView.speed}
+                    </span>
+                  </div>
+
+                  {/* Range */}
+                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-purple-300">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🎯</span>
+                      <span className="font-bold text-gray-700 text-sm">Range:</span>
+                    </div>
+                    <span className="text-lg font-bold text-purple-600">
+                      {cardDetailView.range}
+                    </span>
+                  </div>
+
+                  {/* Action Points (if on board) */}
+                  {cardDetailView.position && (
+                    <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-green-300">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">⚡</span>
+                        <span className="font-bold text-gray-700 text-sm">AP:</span>
+                      </div>
+                      <span className={`text-lg font-bold ${cardDetailView.ap > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                        {cardDetailView.ap > 0 ? '✓ Ready' : '✗ Used'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Card Frame - Bottom Ornamental Border */}
+              <div className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 h-4"></div>
+            </div>
+          ) : (
+            <Fortress 
+              fortress={gameState.fortresses.player1} 
+              side="left"
+              isAttackable={canAttackFortress('player1')}
+              onClick={() => canAttackFortress('player1') && attackFortress('player1')}
+            />
+          )}
         </div>
 
         {/* Game Board */}
-        <div className="flex-1 bg-white/10 rounded-lg p-4 flex items-center justify-center min-h-[500px]">
+        <div className="flex-1 bg-white/10 rounded-lg p-4 flex items-center justify-center min-h-[500px] relative">
           <svg
             width={width}
             height={height}
@@ -563,10 +672,6 @@ const Game: React.FC = () => {
                   onClick={(e) => {
                     e.stopPropagation();
                     selectCard(card);
-                  }}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setCardDetailView(card);
                   }}
                   style={{ cursor: 'pointer' }}
                 >
@@ -643,17 +748,192 @@ const Game: React.FC = () => {
                 </g>
               );
             })}
+            
+            {/* Action buttons above selected hex */}
+            {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && selectedHexPosition && (
+              <g transform={`translate(${hexToPixel(selectedHexPosition).x}, ${hexToPixel(selectedHexPosition).y - 80})`}>
+                {/* Background for buttons */}
+                <rect
+                  x="-100"
+                  y="-25"
+                  width="200"
+                  height="50"
+                  rx="10"
+                  fill="rgba(0, 0, 0, 0.8)"
+                  stroke="#FFD700"
+                  strokeWidth="2"
+                />
+                {/* Move button */}
+                <g 
+                  transform="translate(-50, 0)"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMove();
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <rect
+                    x="-35"
+                    y="-15"
+                    width="70"
+                    height="30"
+                    rx="5"
+                    fill="#10B981"
+                    stroke="#059669"
+                    strokeWidth="2"
+                    className="hover:opacity-80"
+                  />
+                  <text
+                    x="0"
+                    y="5"
+                    textAnchor="middle"
+                    fill="white"
+                    fontSize="12"
+                    fontWeight="bold"
+                  >
+                    🏃 Move
+                  </text>
+                </g>
+                {/* Attack button */}
+                <g 
+                  transform="translate(50, 0)"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAttack();
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <rect
+                    x="-35"
+                    y="-15"
+                    width="70"
+                    height="30"
+                    rx="5"
+                    fill="#EF4444"
+                    stroke="#DC2626"
+                    strokeWidth="2"
+                    className="hover:opacity-80"
+                  />
+                  <text
+                    x="0"
+                    y="5"
+                    textAnchor="middle"
+                    fill="white"
+                    fontSize="12"
+                    fontWeight="bold"
+                  >
+                    ⚔️ Attack
+                  </text>
+                </g>
+              </g>
+            )}
           </svg>
         </div>
 
-        {/* Right Fortress */}
-        <div className="flex-shrink-0">
-          <Fortress 
-            fortress={gameState.fortresses.player2} 
-            side="right"
-            isAttackable={canAttackFortress('player2')}
-            onClick={() => canAttackFortress('player2') && attackFortress('player2')}
-          />
+        {/* Right Side - Player 2 Card Detail or Fortress */}
+        <div className="flex-shrink-0 w-64">
+          {cardDetailView && cardDetailView.owner === 'player2' ? (
+            <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-3xl shadow-2xl border-8 border-amber-600 overflow-hidden bg-opacity-95">
+              {/* Card Frame - Top Ornamental Border */}
+              <div className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 h-4"></div>
+              
+              {/* Card Header */}
+              <div className="bg-gradient-to-r from-amber-700 to-amber-800 px-4 py-3 border-b-4 border-amber-900">
+                <h2 className="text-2xl font-bold text-center text-white drop-shadow-lg">
+                  {cardDetailView.name}
+                </h2>
+              </div>
+
+              {/* Card Image Section */}
+              <div className="bg-white p-4 flex items-center justify-center border-b-4 border-amber-600">
+                <div className="relative w-48 h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl border-4 border-amber-400 shadow-inner flex items-center justify-center overflow-hidden">
+                  <Image 
+                    src={cardDetailView.imageUrl} 
+                    alt={cardDetailView.name}
+                    width={180}
+                    height={180}
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+
+              {/* Card Stats Section */}
+              <div className="px-4 py-3 bg-amber-50">
+                <h3 className="text-lg font-bold text-amber-900 mb-2 text-center border-b-2 border-amber-400 pb-1">
+                  ⚔️ Unit Statistics
+                </h3>
+                
+                <div className="space-y-2">
+                  {/* HP */}
+                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-red-300">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">❤️</span>
+                      <span className="font-bold text-gray-700 text-sm">HP:</span>
+                    </div>
+                    <span className="text-lg font-bold text-red-600">
+                      {cardDetailView.hitPoints}/{cardDetailView.maxHitPoints}
+                    </span>
+                  </div>
+
+                  {/* Attack Damage */}
+                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-orange-300">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">⚔️</span>
+                      <span className="font-bold text-gray-700 text-sm">Attack:</span>
+                    </div>
+                    <span className="text-lg font-bold text-orange-600">
+                      {cardDetailView.attackDamage}
+                    </span>
+                  </div>
+
+                  {/* Speed */}
+                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-blue-300">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🏃</span>
+                      <span className="font-bold text-gray-700 text-sm">Speed:</span>
+                    </div>
+                    <span className="text-lg font-bold text-blue-600">
+                      {cardDetailView.speed}
+                    </span>
+                  </div>
+
+                  {/* Range */}
+                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-purple-300">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🎯</span>
+                      <span className="font-bold text-gray-700 text-sm">Range:</span>
+                    </div>
+                    <span className="text-lg font-bold text-purple-600">
+                      {cardDetailView.range}
+                    </span>
+                  </div>
+
+                  {/* Action Points (if on board) */}
+                  {cardDetailView.position && (
+                    <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-green-300">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">⚡</span>
+                        <span className="font-bold text-gray-700 text-sm">AP:</span>
+                      </div>
+                      <span className={`text-lg font-bold ${cardDetailView.ap > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                        {cardDetailView.ap > 0 ? '✓ Ready' : '✗ Used'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Card Frame - Bottom Ornamental Border */}
+              <div className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 h-4"></div>
+            </div>
+          ) : (
+            <Fortress 
+              fortress={gameState.fortresses.player2} 
+              side="right"
+              isAttackable={canAttackFortress('player2')}
+              onClick={() => canAttackFortress('player2') && attackFortress('player2')}
+            />
+          )}
         </div>
       </div>
 
@@ -664,10 +944,7 @@ const Game: React.FC = () => {
           <h3 className="text-white font-bold text-xl mb-3 text-center">🔵 Player 1 Hand</h3>
           <div className="flex gap-4 flex-wrap justify-center">
             {player1Hand.map(card => (
-              <div key={card.id} onContextMenu={(e) => {
-                e.preventDefault();
-                setCardDetailView(card);
-              }}>
+              <div key={card.id}>
                 <Card
                   card={card}
                   isSelected={gameState.selectedCard?.id === card.id}
@@ -689,10 +966,7 @@ const Game: React.FC = () => {
           <h3 className="text-white font-bold text-xl mb-3 text-center">🔴 Player 2 Hand</h3>
           <div className="flex gap-4 flex-wrap justify-center">
             {player2Hand.map(card => (
-              <div key={card.id} onContextMenu={(e) => {
-                e.preventDefault();
-                setCardDetailView(card);
-              }}>
+              <div key={card.id}>
                 <Card
                   card={card}
                   isSelected={gameState.selectedCard?.id === card.id}
@@ -709,42 +983,6 @@ const Game: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Selected Card Actions */}
-      {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && (
-        <div className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 rounded-xl p-6 shadow-2xl border-4 border-yellow-500">
-          <h3 className="text-2xl font-bold mb-4 text-center text-white drop-shadow-lg">⚔️ Unit Actions</h3>
-          <div className="flex gap-6 justify-center">
-            <button
-              onClick={handleMove}
-              className="bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-10 py-5 rounded-xl font-bold text-2xl shadow-lg transform hover:scale-110 transition-all border-4 border-green-300"
-            >
-              🏃 Move
-              <div className="text-sm font-normal">Speed: {gameState.selectedCard.speed}</div>
-            </button>
-            <button
-              onClick={handleAttack}
-              className="bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-10 py-5 rounded-xl font-bold text-2xl shadow-lg transform hover:scale-110 transition-all border-4 border-red-300"
-            >
-              ⚔️ Attack
-              <div className="text-sm font-normal">Range: {gameState.selectedCard.range}</div>
-            </button>
-            <button
-              onClick={() => {
-                setGameState({ ...gameState, selectedCard: null });
-                setActionMode(null);
-                setHighlightedHexes([]);
-              }}
-              className="bg-gradient-to-br from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-10 py-5 rounded-xl font-bold text-2xl shadow-lg transform hover:scale-110 transition-all border-4 border-gray-300"
-            >
-              ❌ Cancel
-            </button>
-          </div>
-          <p className="text-center text-white text-sm mt-3 font-semibold">
-            💡 Right-click or Ctrl+Click any card to see detailed stats!
-          </p>
-        </div>
-      )}
     </div>
   );
 };
