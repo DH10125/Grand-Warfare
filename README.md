@@ -50,19 +50,47 @@ Open [http://localhost:3000](http://localhost:3000) to play the game.
 
 ## How to Play
 
-1. **Add Cards**: Click on "Add Man", "Add Patch of grass", or "Add Mouse" to add cards to your hand
-2. **Place Cards**: Click on a card in your hand, then click on a spawn hex (P1 = left blue edge, P2 = right red edge) to place it on the board
-3. **Move**: Select a card on the board and click "Move" to highlight reachable tiles, then click a tile to move
-   - **Collect Rewards**: Moving onto unrevealed hexes (marked with ?) reveals hidden card rewards that are automatically added to your hand
-   - **Strategy**: Plan your movement path to collect valuable cards while advancing toward the enemy
-4. **Attack**: Select a card on the board and click "Attack" to highlight attackable tiles, then click a target
-5. **End Turn**: Click "End Turn" when you're done with your actions
-6. **Win**: Reduce your opponent's fortress to 0 HP or below!
+### Starting the Game
+- Each player is automatically dealt 3 random cards at the start of the game
+- Players alternate turns starting with Player 1
 
-### Hidden Card Rewards System
+### Placing Units
+1. **Select a card** from your hand by clicking on it
+2. **Click on a highlighted spawn hex** to place your unit:
+   - Player 1 spawns on the **left blue edge** (marked with "P1")
+   - Player 2 spawns on the **right red edge** (marked with "P2")
+3. Units **cannot act on the turn they're placed** - they need to wait until your next turn
+
+### Moving Units
+1. **Wait for your turn** - Units get 1 Action Point (AP) at the start of their owner's turn (shown as a green circle with "1")
+2. **Click on a unit** with AP to select it
+3. **Click the "Move" button** - This will highlight all hexes within the unit's movement range
+4. **Click on a highlighted hex** to move there
+   - **Collect Cards**: Moving onto unrevealed hexes (marked with ?) reveals and collects hidden card rewards!
+   - The collected card is automatically added to your hand
+   - **Strategy**: Balance between advancing toward the enemy fortress and collecting powerful cards
+
+### Attacking
+1. **Select a unit** with AP (green circle with "1")
+2. **Click the "Attack" button** - This will highlight all tiles within the unit's attack range
+3. **Click on a target** to attack:
+   - Click on an **enemy unit** to damage it
+   - Click on the **enemy fortress** (if in range) to damage it
+4. Units are destroyed when their HP reaches 0
+
+### Winning
+- **Reduce your opponent's fortress to 0 HP or below** to win the game!
+- Each fortress starts with 3000 HP
+
+### End Turn
+- Click "End Turn" when you're done with your actions
+- Your units will regain AP at the start of your next turn
+
+### Card Collection System
 
 - **Unrevealed Hexes**: Show a "?" and may contain hidden card rewards
-- **Revealed Hexes**: Show a 🎴 icon if they contain an uncollected reward
+- **Collect Cards**: Move your units onto unrevealed hexes to reveal and collect rewards
+- **Automatic Collection**: Cards are automatically added to your hand when collected
 - **Collected Hexes**: Show a ✓ checkmark after rewards are collected
 - **Reward Quality**: Cards found further from spawn edges tend to be more powerful
 - **Strategic Depth**: Choose your path carefully to maximize card collection while maintaining tactical position
