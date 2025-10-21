@@ -59,17 +59,6 @@ const CardDetailPopup: React.FC<CardDetailPopupProps> = ({ card, onClose }) => {
               </span>
             </div>
 
-            {/* Attack Damage */}
-            <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 shadow border-2 border-orange-300">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">⚔️</span>
-                <span className="font-bold text-gray-700">Attack Damage:</span>
-              </div>
-              <span className="text-xl font-bold text-orange-600">
-                {card.attackDamage}
-              </span>
-            </div>
-
             {/* Speed */}
             <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 shadow border-2 border-blue-300">
               <div className="flex items-center gap-2">
