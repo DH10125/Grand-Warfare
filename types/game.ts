@@ -3,7 +3,6 @@ export interface Card {
   name: string;
   hitPoints: number;
   maxHitPoints: number;
-  attackDamage: number;
   speed: number;
   range: number;
   imageUrl: string;

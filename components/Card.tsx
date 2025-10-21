@@ -48,12 +48,6 @@ const Card: React.FC<CardProps> = ({
           />
         </div>
         
-        {/* Attack Damage - Bottom Left */}
-        <div className="absolute bottom-1 left-1 bg-orange-500 text-white px-2 py-1 rounded font-bold text-xs flex items-center gap-1">
-          <span>⚔️</span>
-          {card.attackDamage}
-        </div>
-        
         {/* Speed - Bottom Right */}
         <div className="absolute bottom-1 right-1 bg-blue-500 text-white px-2 py-1 rounded font-bold text-xs flex items-center gap-1">
           <span>🏃</span>

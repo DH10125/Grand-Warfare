@@ -57,21 +57,21 @@ const HelpPopup: React.FC<HelpPopupProps> = ({ isOpen, onClose }) => {
               <span className="text-2xl">🏃</span>
               <div>
                 <strong className="text-lg">Moving:</strong>
-                <p className="text-sm">Select a unit with AP, click the "Move" button, then click a highlighted hex to move there. Units can move up to their Speed value.</p>
+                <p className="text-sm">Select a unit with AP to see blue highlighted movement options. Click any blue hex to move there. Units can move up to their Speed value.</p>
               </div>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-2xl">⚔️</span>
               <div>
                 <strong className="text-lg">Attacking:</strong>
-                <p className="text-sm">Select a unit with AP, click "Attack", then click an enemy unit OR their fortress. Your unit can attack up to its Range value.</p>
+                <p className="text-sm">Select a unit with AP to see red highlighted attack targets. Click any red hex to attack that enemy unit OR their fortress. Units can attack up to their Range value.</p>
               </div>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-2xl">💥</span>
               <div>
                 <strong className="text-lg">Unit vs Unit Combat:</strong>
-                <p className="text-sm">When attacking enemy units, BOTH units take damage! If your attacker has 2 ATK and enemy has 1 HP, the enemy dies but your unit loses 1 ATK permanently. Equal attack points = both eliminated!</p>
+                <p className="text-sm">Combat is HP-based! The unit with higher HP wins and advances to the loser's hex. The winner takes damage equal to the loser's HP. If both units have equal HP, both are destroyed!</p>
               </div>
             </li>
             <li className="flex items-start gap-3">

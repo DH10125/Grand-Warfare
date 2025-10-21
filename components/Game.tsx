@@ -278,49 +278,46 @@ const Game: React.FC = () => {
     }
     
     let updatedCards = gameState.cards;
-    let updatedFortresses = gameState.fortresses;
+    const attackerHP = gameState.selectedCard.hitPoints;
+    const defenderHP = targetCard.hitPoints;
+    const attackerPosition = gameState.selectedCard.position!;
+    const defenderPosition = targetCard.position!;
     
-    // Unit vs Unit combat - BOTH units take damage
-    const attackerDamage = gameState.selectedCard.attackDamage;
-    const defenderDamage = targetCard.attackDamage;
-    
-    // Calculate new HP for both units
-    const targetNewHp = targetCard.hitPoints - attackerDamage;
-    const attackerNewHp = gameState.selectedCard.hitPoints - defenderDamage;
-    
-    // Remove destroyed units or update HP
-    if (targetNewHp <= 0 && attackerNewHp <= 0) {
-      // Both units destroyed
+    // New HP-based combat system
+    if (attackerHP > defenderHP) {
+      // Attacker wins - defender is eliminated, attacker advances to defender's hex
+      // Attacker takes damage equal to defender's HP
+      const attackerNewHP = attackerHP - defenderHP;
+      
+      updatedCards = gameState.cards
+        .filter(c => c.id !== targetCard.id) // Remove defeated unit
+        .map(c => c.id === gameState.selectedCard!.id 
+          ? { ...c, hitPoints: attackerNewHP, position: defenderPosition, ap: 0 } // Advance to defender's hex
+          : c
+        );
+      
+      setNotification(`⚔️ Victory! Enemy defeated! Your unit advances and takes ${defenderHP} damage.`);
+      
+    } else if (defenderHP > attackerHP) {
+      // Defender wins - attacker is eliminated, defender advances to attacker's hex
+      // Defender takes damage equal to attacker's HP
+      const defenderNewHP = defenderHP - attackerHP;
+      
+      updatedCards = gameState.cards
+        .filter(c => c.id !== gameState.selectedCard!.id) // Remove defeated unit
+        .map(c => c.id === targetCard.id 
+          ? { ...c, hitPoints: defenderNewHP, position: attackerPosition } // Advance to attacker's hex
+          : c
+        );
+      
+      setNotification(`💔 Defeat! Your unit was eliminated! Enemy advances and takes ${attackerHP} damage.`);
+      
+    } else {
+      // Equal HP - both units are destroyed
       updatedCards = gameState.cards.filter(c => 
         c.id !== targetCard.id && c.id !== gameState.selectedCard!.id
       );
-      setNotification('💥 Both units destroyed in combat!');
-    } else if (targetNewHp <= 0) {
-      // Only target destroyed, attacker survives but takes damage
-      updatedCards = gameState.cards
-        .filter(c => c.id !== targetCard.id)
-        .map(c => c.id === gameState.selectedCard!.id 
-          ? { ...c, hitPoints: attackerNewHp, ap: 0 } 
-          : c
-        );
-      setNotification(`⚔️ Enemy unit destroyed! Your unit took ${defenderDamage} damage.`);
-    } else if (attackerNewHp <= 0) {
-      // Only attacker destroyed
-      updatedCards = gameState.cards
-        .filter(c => c.id !== gameState.selectedCard!.id)
-        .map(c => c.id === targetCard.id 
-          ? { ...c, hitPoints: targetNewHp } 
-          : c
-        );
-      setNotification('💔 Your unit was destroyed in combat!');
-    } else {
-      // Both units survive with reduced HP
-      updatedCards = gameState.cards.map(c => {
-        if (c.id === targetCard.id) return { ...c, hitPoints: targetNewHp };
-        if (c.id === gameState.selectedCard!.id) return { ...c, hitPoints: attackerNewHp, ap: 0 };
-        return c;
-      });
-      setNotification(`⚔️ Both units damaged! Attacker: ${attackerNewHp}HP, Defender: ${targetNewHp}HP`);
+      setNotification('💥 Equal strength! Both units destroyed in combat!');
     }
     
     // Show notification for 3 seconds
@@ -329,7 +326,6 @@ const Game: React.FC = () => {
     setGameState({
       ...gameState,
       cards: updatedCards,
-      fortresses: updatedFortresses,
       selectedCard: null,
     });
     setHighlightedMoveHexes([]);
@@ -346,7 +342,8 @@ const Game: React.FC = () => {
     
     const updatedFortresses = { ...gameState.fortresses };
     const targetFortress = updatedFortresses[fortressOwner];
-    targetFortress.hitPoints -= gameState.selectedCard.attackDamage;
+    // Use the unit's HP as the damage dealt to fortress
+    targetFortress.hitPoints -= gameState.selectedCard.hitPoints;
     
     // Mark card as having used AP
     const updatedCards = gameState.cards.map(c =>
@@ -562,17 +559,6 @@ const Game: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Attack Damage */}
-                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-orange-300">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">⚔️</span>
-                      <span className="font-bold text-gray-700 text-sm">Attack:</span>
-                    </div>
-                    <span className="text-lg font-bold text-orange-600">
-                      {cardDetailView.attackDamage}
-                    </span>
-                  </div>
-
                   {/* Speed */}
                   <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-blue-300">
                     <div className="flex items-center gap-2">
@@ -759,7 +745,7 @@ const Game: React.FC = () => {
                         fontSize="8"
                         fontWeight="bold"
                       >
-                        ATK:{card.attackDamage} SPD:{card.speed} RNG:{card.range}
+                        HP:{card.hitPoints} SPD:{card.speed} RNG:{card.range}
                       </text>
                     </>
                   )}
@@ -812,17 +798,6 @@ const Game: React.FC = () => {
                     </div>
                     <span className="text-lg font-bold text-red-600">
                       {cardDetailView.hitPoints}/{cardDetailView.maxHitPoints}
-                    </span>
-                  </div>
-
-                  {/* Attack Damage */}
-                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-orange-300">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">⚔️</span>
-                      <span className="font-bold text-gray-700 text-sm">Attack:</span>
-                    </div>
-                    <span className="text-lg font-bold text-orange-600">
-                      {cardDetailView.attackDamage}
                     </span>
                   </div>
 
