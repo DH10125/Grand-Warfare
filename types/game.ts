@@ -21,6 +21,7 @@ export interface HexTile extends HexPosition {
   reward?: CardTemplate; // Hidden card reward
   isRevealed: boolean; // Has the player seen what's under this hex?
   isCollected: boolean; // Has the reward been collected?
+  terrainType?: 'normal' | 'slow' | 'dangerous'; // Optional special terrain
 }
 
 export interface Fortress {

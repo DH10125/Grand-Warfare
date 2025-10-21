@@ -23,6 +23,21 @@ const Hexagon: React.FC<HexagonProps> = ({
 }) => {
   const { x, y } = hexToPixel(tile);
   
+  // Generate tooltip text
+  let tooltipText = '';
+  if (!tile.isRevealed && !isSpawnEdge && !hasCard) {
+    tooltipText = 'Unrevealed hex - may contain a card reward';
+    if (tile.terrainType === 'slow') {
+      tooltipText += ' (Difficult Terrain: costs extra movement)';
+    } else if (tile.terrainType === 'dangerous') {
+      tooltipText += ' (Dangerous: small damage on entry)';
+    }
+  } else if (tile.isRevealed && tile.reward && !tile.isCollected && !hasCard) {
+    tooltipText = `Card reward: ${tile.reward.name}`;
+  } else if (tile.isCollected) {
+    tooltipText = 'Reward already collected';
+  }
+  
   // Create hexagon path for pointy-topped hexes
   const points: string[] = [];
   for (let i = 0; i < 6; i++) {
@@ -49,6 +64,13 @@ const Hexagon: React.FC<HexagonProps> = ({
     // Unrevealed hexes have a darker, mysterious appearance
     fillColor = '#A8A8A8';
     strokeColor = '#696969';
+    
+    // Tint based on terrain type (subtle hint)
+    if (tile.terrainType === 'slow') {
+      fillColor = '#9B8B7E'; // Brownish tint
+    } else if (tile.terrainType === 'dangerous') {
+      fillColor = '#A88888'; // Reddish tint
+    }
   } else if (tile.isCollected) {
     // Collected hexes appear depleted
     fillColor = '#D3D3D3';
@@ -71,6 +93,9 @@ const Hexagon: React.FC<HexagonProps> = ({
       onClick={onClick}
       style={{ cursor: onClick ? 'pointer' : 'default' }}
     >
+      {tooltipText && (
+        <title>{tooltipText}</title>
+      )}
       <polygon
         points={pathData}
         fill={fillColor}
@@ -124,6 +149,31 @@ const Hexagon: React.FC<HexagonProps> = ({
           fontWeight="bold"
         >
           ✓
+        </text>
+      )}
+      {/* Show terrain indicator for revealed special terrain */}
+      {tile.isRevealed && tile.terrainType === 'slow' && !tile.reward && !tile.isCollected && !hasCard && (
+        <text
+          x="0"
+          y="5"
+          textAnchor="middle"
+          fill="#8B4513"
+          fontSize="16"
+          fontWeight="bold"
+        >
+          🪨
+        </text>
+      )}
+      {tile.isRevealed && tile.terrainType === 'dangerous' && !tile.reward && !tile.isCollected && !hasCard && (
+        <text
+          x="0"
+          y="5"
+          textAnchor="middle"
+          fill="#FF4500"
+          fontSize="16"
+          fontWeight="bold"
+        >
+          ⚠️
         </text>
       )}
     </g>

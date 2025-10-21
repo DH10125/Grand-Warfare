@@ -66,6 +66,12 @@ export function generateCorridorGridWithRewards(length: number = 10, width: numb
       // Don't place rewards on spawn edges (first and last columns)
       const isSpawnEdge = q === 0 || q === length - 1;
       
+      // Determine terrain type (10% chance of special terrain)
+      let terrainType: 'normal' | 'slow' | 'dangerous' = 'normal';
+      if (!isSpawnEdge && Math.random() < 0.1) {
+        terrainType = Math.random() < 0.5 ? 'slow' : 'dangerous';
+      }
+      
       // Assign random card rewards to non-spawn hexes
       // Some hexes may have no reward (about 30% chance of no reward for variety)
       let reward: CardTemplate | undefined = undefined;
@@ -93,6 +99,7 @@ export function generateCorridorGridWithRewards(length: number = 10, width: numb
         reward,
         isRevealed: isSpawnEdge, // Spawn edges are always revealed
         isCollected: false,
+        terrainType,
       });
     }
   }
