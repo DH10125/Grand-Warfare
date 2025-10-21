@@ -4,8 +4,17 @@ A hexagonal grid strategy card game built with Next.js and TypeScript.
 
 ## Game Features
 
-- **Hexagonal Grid Board**: Play on a dynamic 30-tile hexagonal grid
+- **Hexagonal Grid Board**: Play on a dynamic 40-tile hexagonal grid with multiple pathways
 - **Two Fortresses**: Each player has a fortress with 3000 HP
+- **Hidden Card Rewards**: Unrevealed hexes (marked with ?) contain hidden card rewards
+  - Move your units onto these hexes to reveal and collect cards
+  - Cards are automatically added to your hand when collected
+  - Revealed hexes show a 🎴 icon if they have uncollected rewards
+  - Collected hexes are marked with a ✓ checkmark
+- **Strategic Pathways**: Multiple routes allow players to:
+  - Dodge enemy units
+  - Plan optimal paths to collect better rewards
+  - Balance between advancing and collecting resources
 - **Three Card Types**:
   - **Man**: 200 HP, 40 ATK, 2 SPD, 1 RNG
   - **Patch of grass**: 300 HP, 80 ATK, 1 SPD, 1 RNG
@@ -42,11 +51,21 @@ Open [http://localhost:3000](http://localhost:3000) to play the game.
 ## How to Play
 
 1. **Add Cards**: Click on "Add Man", "Add Patch of grass", or "Add Mouse" to add cards to your hand
-2. **Place Cards**: Click on a card in your hand, then click on a hexagon on the board to place it
+2. **Place Cards**: Click on a card in your hand, then click on a spawn hex (P1 = left blue edge, P2 = right red edge) to place it on the board
 3. **Move**: Select a card on the board and click "Move" to highlight reachable tiles, then click a tile to move
+   - **Collect Rewards**: Moving onto unrevealed hexes (marked with ?) reveals hidden card rewards that are automatically added to your hand
+   - **Strategy**: Plan your movement path to collect valuable cards while advancing toward the enemy
 4. **Attack**: Select a card on the board and click "Attack" to highlight attackable tiles, then click a target
 5. **End Turn**: Click "End Turn" when you're done with your actions
 6. **Win**: Reduce your opponent's fortress to 0 HP or below!
+
+### Hidden Card Rewards System
+
+- **Unrevealed Hexes**: Show a "?" and may contain hidden card rewards
+- **Revealed Hexes**: Show a 🎴 icon if they contain an uncollected reward
+- **Collected Hexes**: Show a ✓ checkmark after rewards are collected
+- **Reward Quality**: Cards found further from spawn edges tend to be more powerful
+- **Strategic Depth**: Choose your path carefully to maximize card collection while maintaining tactical position
 
 ## Deploying to Vercel
 

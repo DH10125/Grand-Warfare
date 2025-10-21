@@ -17,6 +17,12 @@ export interface HexPosition {
   r: number;
 }
 
+export interface HexTile extends HexPosition {
+  reward?: CardTemplate; // Hidden card reward
+  isRevealed: boolean; // Has the player seen what's under this hex?
+  isCollected: boolean; // Has the reward been collected?
+}
+
 export interface Fortress {
   hitPoints: number;
   maxHitPoints: number;
@@ -24,7 +30,7 @@ export interface Fortress {
 }
 
 export interface GameState {
-  hexagons: HexPosition[];
+  hexagons: HexTile[]; // Changed from HexPosition[] to HexTile[]
   cards: Card[];
   fortresses: {
     player1: Fortress;

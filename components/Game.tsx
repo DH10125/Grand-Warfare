@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { GameState, Card as CardType, HexPosition } from '@/types/game';
-import { generateCorridorGrid, hexToPixel, hexDistance, hexEqual, HEX_SIZE, getSpawnEdges, hexDistanceToFortress } from '@/utils/hexUtils';
+import { GameState, Card as CardType, HexPosition, HexTile } from '@/types/game';
+import { generateCorridorGridWithRewards, hexToPixel, hexDistance, hexEqual, HEX_SIZE, getSpawnEdges, hexDistanceToFortress } from '@/utils/hexUtils';
 import { CARD_TEMPLATES } from '@/utils/cardTemplates';
 import Hexagon from './Hexagon';
 import Card from './Card';
@@ -15,10 +15,11 @@ const Game: React.FC = () => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [actionMode, setActionMode] = useState<'move' | 'attack' | null>(null);
   const [highlightedHexes, setHighlightedHexes] = useState<HexPosition[]>([]);
+  const [notification, setNotification] = useState<string>('');
 
   // Initialize game
   useEffect(() => {
-    const hexagons = generateCorridorGrid(CORRIDOR_LENGTH, CORRIDOR_WIDTH);
+    const hexagons = generateCorridorGridWithRewards(CORRIDOR_LENGTH, CORRIDOR_WIDTH);
     const { leftEdge, rightEdge } = getSpawnEdges(CORRIDOR_LENGTH, CORRIDOR_WIDTH);
     
     const initialState: GameState = {
@@ -145,17 +146,59 @@ const Game: React.FC = () => {
     if (!gameState?.selectedCard || actionMode !== 'move') return;
     if (gameState.selectedCard.ap <= 0) return; // Check AP
     
+    // Find the hex tile
+    const hexTile = gameState.hexagons.find(h => hexEqual(h, targetHex));
+    
+    // Update card position
     const updatedCards = gameState.cards.map(c =>
       c.id === gameState.selectedCard!.id ? { ...c, position: targetHex, ap: 0 } : c
     );
     
+    // Reveal and collect hex reward if available
+    let updatedHexagons = gameState.hexagons;
+    let newCards = updatedCards;
+    let rewardMessage = '';
+    
+    if (hexTile && !hexTile.isRevealed) {
+      // Reveal the hex
+      updatedHexagons = gameState.hexagons.map(h =>
+        hexEqual(h, targetHex) ? { ...h, isRevealed: true } : h
+      );
+    }
+    
+    if (hexTile && hexTile.reward && !hexTile.isCollected) {
+      // Collect the reward - add card to player's hand
+      const rewardCard: CardType = {
+        ...hexTile.reward,
+        id: `reward-${gameState.currentPlayer}-${Date.now()}-${Math.random()}`,
+        owner: gameState.currentPlayer,
+        ap: 0,
+      };
+      
+      newCards = [...newCards, rewardCard];
+      
+      // Mark hex as collected
+      updatedHexagons = updatedHexagons.map(h =>
+        hexEqual(h, targetHex) ? { ...h, isCollected: true } : h
+      );
+      
+      rewardMessage = `🎉 Collected: ${hexTile.reward.name}!`;
+    }
+    
     setGameState({
       ...gameState,
-      cards: updatedCards,
+      hexagons: updatedHexagons,
+      cards: newCards,
       selectedCard: null,
     });
     setActionMode(null);
     setHighlightedHexes([]);
+    
+    // Show reward notification
+    if (rewardMessage) {
+      setNotification(rewardMessage);
+      setTimeout(() => setNotification(''), 3000);
+    }
   };
 
   const executeAttack = (targetHex: HexPosition) => {
@@ -304,6 +347,13 @@ const Game: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 p-4 overflow-auto">
+      {/* Reward Notification */}
+      {notification && (
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-8 py-4 rounded-lg shadow-lg z-50 text-xl font-bold animate-bounce">
+          {notification}
+        </div>
+      )}
+      
       {/* Winner Banner */}
       {gameState.winner && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -337,7 +387,7 @@ const Game: React.FC = () => {
         <div className="text-sm text-gray-600">
           {!gameState.selectedCard && '📝 Click "Add Card" buttons below to draw a card, then click a spawn hex to place it'}
           {gameState.selectedCard && !gameState.selectedCard.position && '📍 Click a highlighted spawn hex to place your unit'}
-          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && '⚡ Unit selected! Choose Move or Attack below'}
+          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && '⚡ Unit selected! Choose Move or Attack. Move onto ? hexes to reveal hidden card rewards!'}
           {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap === 0 && '⏸️ This unit has already acted this turn'}
         </div>
       </div>
@@ -363,28 +413,28 @@ const Game: React.FC = () => {
             className="mx-auto max-w-full h-auto"
           >
             {/* Render hexagons */}
-            {gameState.hexagons.map((hex, index) => {
-              const hasCard = cardsOnBoard.some(c => c.position && hexEqual(c.position, hex));
-              const isHighlighted = actionMode === 'move' && highlightedHexes.some(h => hexEqual(h, hex));
-              const isAttackable = actionMode === 'attack' && highlightedHexes.some(h => hexEqual(h, hex));
-              const isLeftSpawn = gameState.leftSpawnEdge.some(h => hexEqual(h, hex));
-              const isRightSpawn = gameState.rightSpawnEdge.some(h => hexEqual(h, hex));
+            {gameState.hexagons.map((hexTile, index) => {
+              const hasCard = cardsOnBoard.some(c => c.position && hexEqual(c.position, hexTile));
+              const isHighlighted = actionMode === 'move' && highlightedHexes.some(h => hexEqual(h, hexTile));
+              const isAttackable = actionMode === 'attack' && highlightedHexes.some(h => hexEqual(h, hexTile));
+              const isLeftSpawn = gameState.leftSpawnEdge.some(h => hexEqual(h, hexTile));
+              const isRightSpawn = gameState.rightSpawnEdge.some(h => hexEqual(h, hexTile));
               const isSpawnEdge = isLeftSpawn || isRightSpawn;
               
               return (
-                <g key={`${hex.q}-${hex.r}`}>
+                <g key={`${hexTile.q}-${hexTile.r}`}>
                   <Hexagon
-                    position={hex}
+                    tile={hexTile}
                     isHighlighted={isHighlighted}
                     isAttackable={isAttackable}
-                    onClick={() => handleHexClick(hex)}
+                    onClick={() => handleHexClick(hexTile)}
                     hasCard={hasCard}
                     isSpawnEdge={isSpawnEdge}
                     spawnOwner={isLeftSpawn ? 'player1' : isRightSpawn ? 'player2' : undefined}
                   />
                   {/* Show spawn edge indicator */}
                   {isSpawnEdge && !hasCard && (
-                    <g transform={`translate(${hexToPixel(hex).x}, ${hexToPixel(hex).y})`}>
+                    <g transform={`translate(${hexToPixel(hexTile).x}, ${hexToPixel(hexTile).y})`}>
                       <text
                         x="0"
                         y="5"
@@ -525,6 +575,8 @@ const Game: React.FC = () => {
             <li>Click a card in your hand, then click a spawn hex (P1 = left blue edge, P2 = right red edge) to place it</li>
             <li>Units get 1 AP at the start of their owner's turn (cannot act on placement turn)</li>
             <li>Click a unit with AP, then choose Move or Attack</li>
+            <li><strong>🎴 Hidden Rewards:</strong> Hexes marked with "?" contain hidden cards. Move onto them to reveal and collect!</li>
+            <li><strong>🌟 Strategy:</strong> Plan your path to collect powerful cards while advancing toward the enemy fortress</li>
             <li>Win by reducing enemy fortress to 0 HP!</li>
           </ul>
         </div>
