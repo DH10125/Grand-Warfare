@@ -71,7 +71,14 @@ const HelpPopup: React.FC<HelpPopupProps> = ({ isOpen, onClose }) => {
               <span className="text-2xl">💥</span>
               <div>
                 <strong className="text-lg">Unit vs Unit Combat:</strong>
-                <p className="text-sm">Combat is HP-based! The unit with higher HP wins and advances to the loser's hex. The winner takes damage equal to the loser's HP. If both units have equal HP, both are destroyed!</p>
+                <p className="text-sm">Combat is HP-based! The unit with higher HP wins and advances to the loser's hex. The winner takes damage equal to the loser's HP. If both units have equal HP, both are destroyed! <strong className="text-red-600">NEW: When a unit is defeated, their HP is also dealt as damage to their fortress!</strong></p>
+              </div>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-2xl">🏰</span>
+              <div>
+                <strong className="text-lg">Fortress Assault:</strong>
+                <p className="text-sm"><strong className="text-purple-600">NEW: Reach enemy spawn zone!</strong> Move a unit to the enemy's spawn edge (opposite side of the map) to deal that unit's remaining HP as fortress damage, then the unit disappears. This is a powerful way to pressure the enemy fortress!</p>
               </div>
             </li>
             <li className="flex items-start gap-3">
@@ -85,7 +92,7 @@ const HelpPopup: React.FC<HelpPopupProps> = ({ isOpen, onClose }) => {
               <span className="text-2xl">🏆</span>
               <div>
                 <strong className="text-lg">Victory:</strong>
-                <p className="text-sm">Reduce your opponent's fortress to 0 HP to win the game!</p>
+                <p className="text-sm">Reduce your opponent's fortress to 0 HP to win! There are multiple ways to damage fortresses: direct attacks, defeating enemy units, or reaching their spawn zone. The game is now much faster-paced!</p>
               </div>
             </li>
           </ul>
@@ -114,6 +121,10 @@ const HelpPopup: React.FC<HelpPopupProps> = ({ isOpen, onClose }) => {
             <li className="flex items-start gap-2">
               <span className="text-yellow-500">★</span>
               <p className="text-sm"><strong>Click Cards for Details:</strong> Click any card (in hand or on board) to see its full stats and abilities!</p>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-yellow-500">★</span>
+              <p className="text-sm"><strong className="text-purple-600">NEW STRATEGY:</strong> Consider rushing enemy spawn zones with strong units for massive fortress damage, or focus on defeating weak enemy units to chip away at their fortress!</p>
             </li>
           </ul>
         </div>

@@ -10,7 +10,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     imageUrl: '/cards/man.svg',
   },
   {
-    name: 'Patch of grass',
+    name: 'Grass',
     hitPoints: 300,
     maxHitPoints: 300,
     speed: 1,

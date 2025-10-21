@@ -1,0 +1,44 @@
+<svg width="128" height="160" viewBox="0 0 128 160" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fortress base -->
+  <rect x="16" y="80" width="96" height="80" fill="#C49574" stroke="#8B4513" stroke-width="3"/>
+  
+  <!-- Towers - one partially collapsed -->
+  <rect x="8" y="45" width="24" height="75" fill="#C49574" stroke="#8B4513" stroke-width="2"/>
+  <rect x="96" y="40" width="24" height="80" fill="#C49574" stroke="#8B4513" stroke-width="2"/>
+  
+  <!-- Tower tops - one damaged -->
+  <polygon points="8,45 20,30 32,45" fill="#8B4513"/>
+  <polygon points="96,40 108,25 120,40" fill="#8B4513"/>
+  
+  <!-- Castle battlements - heavily damaged -->
+  <rect x="16" y="70" width="96" height="10" fill="#8B4513"/>
+  <rect x="16" y="70" width="8" height="20" fill="#8B4513"/>
+  <rect x="32" y="70" width="8" height="10" fill="#8B4513"/> <!-- Heavily damaged -->
+  <rect x="48" y="70" width="8" height="18" fill="#8B4513"/>
+  <rect x="64" y="70" width="8" height="15" fill="#8B4513"/> <!-- Damaged -->
+  <rect x="80" y="70" width="8" height="12" fill="#8B4513"/> <!-- Heavily damaged -->
+  <rect x="96" y="70" width="8" height="20" fill="#8B4513"/>
+  <rect x="104" y="70" width="8" height="17" fill="#8B4513"/> <!-- Damaged -->
+  
+  <!-- Gate -->
+  <rect x="56" y="120" width="16" height="40" fill="#4A4A4A" rx="8"/>
+  
+  <!-- Windows - many broken/dark -->
+  <rect x="32" y="100" width="8" height="8" fill="#FF8C00"/> <!-- Dimmer -->
+  <rect x="88" y="100" width="8" height="8" fill="#8B0000"/> <!-- Dark/broken -->
+  <rect x="32" y="120" width="8" height="8" fill="#8B0000"/> <!-- Dark/broken -->
+  <rect x="88" y="120" width="8" height="8" fill="#FF8C00"/> <!-- Dimmer -->
+  
+  <!-- Heavy damage - large cracks and holes -->
+  <line x1="12" y1="75" x2="45" y2="110" stroke="#8B0000" stroke-width="4"/>
+  <line x1="85" y1="80" x2="118" y2="115" stroke="#8B0000" stroke-width="4"/>
+  <line x1="30" y1="78" x2="60" y2="100" stroke="#8B0000" stroke-width="3"/>
+  <line x1="70" y1="85" x2="100" y2="110" stroke="#8B0000" stroke-width="3"/>
+  <circle cx="25" cy="100" r="4" fill="#8B0000"/> <!-- Hole -->
+  <circle cx="105" cy="95" r="3" fill="#8B0000"/> <!-- Hole -->
+  
+  <!-- Eyes and sad expression -->
+  <circle cx="48" cy="95" r="3" fill="#8B4513"/>
+  <circle cx="80" cy="95" r="3" fill="#8B4513"/>
+  <path d="M 52 112 Q 64 107 76 112" stroke="#8B4513" stroke-width="2" fill="none"/>
+</svg>

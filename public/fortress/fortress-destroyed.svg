@@ -1,0 +1,46 @@
+<svg width="128" height="160" viewBox="0 0 128 160" xmlns="http://www.w3.org/2000/svg">
+  <!-- Rubble pile - fortress completely destroyed -->
+  <ellipse cx="64" cy="140" rx="50" ry="20" fill="#8B4513"/>
+  
+  <!-- Broken stone pieces -->
+  <rect x="20" y="125" width="15" height="10" fill="#A47554" transform="rotate(15)"/>
+  <rect x="50" y="130" width="20" height="8" fill="#B48564" transform="rotate(-10)"/>
+  <rect x="75" y="128" width="12" height="12" fill="#A47554" transform="rotate(25)"/>
+  <rect x="95" y="135" width="18" height="6" fill="#C49574" transform="rotate(-20)"/>
+  <rect x="35" y="138" width="10" height="8" fill="#B48564" transform="rotate(5)"/>
+  <rect x="85" y="142" width="14" height="7" fill="#A47554" transform="rotate(-15)"/>
+  
+  <!-- Scattered debris -->
+  <circle cx="25" cy="135" r="3" fill="#8B4513"/>
+  <circle cx="45" cy="142" r="2" fill="#8B4513"/>
+  <circle cx="65" cy="138" r="4" fill="#8B4513"/>
+  <circle cx="85" cy="144" r="2" fill="#8B4513"/>
+  <circle cx="105" cy="140" r="3" fill="#8B4513"/>
+  
+  <!-- Broken gate remnants -->
+  <rect x="58" y="145" width="12" height="8" fill="#4A4A4A" transform="rotate(30)"/>
+  
+  <!-- Dust clouds -->
+  <circle cx="30" cy="115" r="8" fill="#999" opacity="0.4"/>
+  <circle cx="70" cy="110" r="10" fill="#999" opacity="0.3"/>
+  <circle cx="95" cy="118" r="6" fill="#999" opacity="0.4"/>
+  <circle cx="40" cy="108" r="5" fill="#BBB" opacity="0.3"/>
+  <circle cx="85" cy="105" r="7" fill="#BBB" opacity="0.2"/>
+  
+  <!-- Some broken tower pieces -->
+  <rect x="15" y="120" width="8" height="15" fill="#A47554" transform="rotate(45)"/>
+  <rect x="100" y="118" width="6" height="20" fill="#B48564" transform="rotate(-35)"/>
+  
+  <!-- Scattered stones -->
+  <rect x="10" y="140" width="4" height="3" fill="#8B4513" transform="rotate(20)"/>
+  <rect x="25" y="145" width="3" height="2" fill="#8B4513" transform="rotate(-10)"/>
+  <rect x="40" y="148" width="5" height="2" fill="#8B4513" transform="rotate(35)"/>
+  <rect x="60" y="150" width="3" height="4" fill="#8B4513" transform="rotate(-25)"/>
+  <rect x="80" y="147" width="4" height="3" fill="#8B4513" transform="rotate(15)"/>
+  <rect x="100" y="149" width="3" height="2" fill="#8B4513" transform="rotate(-40)"/>
+  <rect x="115" y="145" width="2" height="3" fill="#8B4513" transform="rotate(50)"/>
+  
+  <!-- Flag or banner remnant -->
+  <line x1="55" y1="120" x2="55" y2="135" stroke="#8B4513" stroke-width="2"/>
+  <polygon points="55,120 70,125 55,130" fill="#8B0000" opacity="0.7"/>
+</svg>

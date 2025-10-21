@@ -7,9 +7,10 @@ import Image from 'next/image';
 interface CardDetailPopupProps {
   card: CardType | null;
   onClose: () => void;
+  onPlaceCard?: (card: CardType) => void;
 }
 
-const CardDetailPopup: React.FC<CardDetailPopupProps> = ({ card, onClose }) => {
+const CardDetailPopup: React.FC<CardDetailPopupProps> = ({ card, onClose, onPlaceCard }) => {
   if (!card) return null;
 
   return (

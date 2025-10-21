@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { Fortress as FortressType } from '@/types/game';
 
 interface FortressProps {
@@ -11,15 +12,22 @@ interface FortressProps {
 const Fortress: React.FC<FortressProps> = ({ fortress, side, isAttackable = false, onClick }) => {
   const hpPercentage = (fortress.hitPoints / fortress.maxHitPoints) * 100;
   
-  // Determine damage state based on HP percentage
-  const getDamageState = () => {
-    if (hpPercentage > 75) return 'pristine';
-    if (hpPercentage > 50) return 'damaged';
-    if (hpPercentage > 25) return 'heavy';
-    return 'critical';
+  // Determine which fortress image to use based on current HP
+  const getFortressImage = () => {
+    const maxHP = fortress.maxHitPoints;
+    const currentHP = fortress.hitPoints;
+    
+    if (currentHP <= 0) return '/fortress/fortress-destroyed.svg';
+    if (currentHP <= maxHP * 0.16) return '/fortress/fortress-critical.svg';
+    if (currentHP <= maxHP * 0.33) return '/fortress/fortress-heavy.svg';
+    if (currentHP <= maxHP * 0.50) return '/fortress/fortress-damaged.svg';
+    if (currentHP <= maxHP * 0.66) return '/fortress/fortress-moderate.svg';
+    if (currentHP <= maxHP * 0.83) return '/fortress/fortress-light.svg';
+    if (currentHP < maxHP) return '/fortress/fortress-minor.svg';
+    return '/fortress/fortress-pristine.svg';
   };
   
-  const damageState = getDamageState();
+  const fortressImage = getFortressImage();
   
   return (
     <div 
@@ -34,71 +42,19 @@ const Fortress: React.FC<FortressProps> = ({ fortress, side, isAttackable = fals
       </div>
       
       {/* Fortress Visual */}
-      <div className={`relative w-40 h-56 bg-gradient-to-b ${
-        damageState === 'pristine' ? 'from-gray-600 to-gray-800' :
-        damageState === 'damaged' ? 'from-gray-700 to-gray-900' :
-        damageState === 'heavy' ? 'from-red-900 to-gray-900' :
-        'from-red-950 to-black'
-      } rounded-t-lg border-4 ${
-        isAttackable ? 'border-red-500 animate-pulse' : 'border-gray-900'
+      <div className={`relative w-40 h-56 flex items-center justify-center ${
+        isAttackable ? 'animate-pulse border-4 border-red-500 rounded-lg' : ''
       }`}>
-        {/* Castle towers - visibility based on damage */}
-        {damageState !== 'critical' && (
-          <>
-            <div className={`absolute -top-6 left-2 w-6 h-10 bg-gray-700 border-2 border-gray-900 ${
-              damageState === 'heavy' ? 'opacity-50' : ''
-            }`}></div>
-            <div className={`absolute -top-6 right-2 w-6 h-10 bg-gray-700 border-2 border-gray-900 ${
-              damageState === 'heavy' ? 'opacity-50' : ''
-            }`}></div>
-          </>
-        )}
-        
-        {/* Damage cracks */}
-        {damageState !== 'pristine' && (
-          <>
-            <div className="absolute top-12 left-4 w-16 h-1 bg-red-900 rotate-45"></div>
-            <div className="absolute top-20 right-6 w-12 h-1 bg-red-900 -rotate-45"></div>
-          </>
-        )}
-        
-        {damageState === 'heavy' && (
-          <>
-            <div className="absolute top-24 left-8 w-10 h-1 bg-red-900 rotate-12"></div>
-            <div className="absolute top-32 right-4 w-14 h-1 bg-red-900 -rotate-12"></div>
-          </>
-        )}
-        
-        {damageState === 'critical' && (
-          <>
-            <div className="absolute top-8 left-2 w-20 h-2 bg-orange-600"></div>
-            <div className="absolute top-28 right-2 w-16 h-2 bg-orange-600"></div>
-            <div className="absolute top-40 left-4 w-12 h-2 bg-orange-600"></div>
-          </>
-        )}
-        
-        {/* Castle gate */}
-        <div className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-16 ${
-          damageState === 'critical' ? 'bg-red-900' : 'bg-gray-900'
-        } rounded-t-lg`}></div>
-        
-        {/* Windows - fade out as damage increases */}
-        {damageState !== 'critical' && (
-          <>
-            <div className={`absolute top-8 left-6 w-4 h-4 ${
-              damageState === 'heavy' ? 'bg-orange-500' : 'bg-yellow-300'
-            }`}></div>
-            <div className={`absolute top-8 right-6 w-4 h-4 ${
-              damageState === 'heavy' ? 'bg-orange-500' : 'bg-yellow-300'
-            }`}></div>
-          </>
-        )}
-        {damageState === 'pristine' && (
-          <>
-            <div className="absolute top-20 left-6 w-4 h-4 bg-yellow-300"></div>
-            <div className="absolute top-20 right-6 w-4 h-4 bg-yellow-300"></div>
-          </>
-        )}
+        {/* Fortress Image */}
+        <div className="w-32 h-40 relative">
+          <Image
+            src={fortressImage}
+            alt="Fortress"
+            width={128}
+            height={160}
+            className="object-contain"
+          />
+        </div>
       </div>
       
       {/* HP Bar - Below fortress */}
@@ -108,11 +64,11 @@ const Fortress: React.FC<FortressProps> = ({ fortress, side, isAttackable = fals
             className={`h-full transition-all duration-300 ${
               hpPercentage > 50 ? 'bg-green-500' : hpPercentage > 25 ? 'bg-yellow-500' : 'bg-red-500'
             }`}
-            style={{ width: `${hpPercentage}%` }}
+            style={{ width: `${Math.max(0, hpPercentage)}%` }}
           ></div>
         </div>
         <div className="text-center font-bold text-sm mt-1 text-white">
-          {fortress.hitPoints} / {fortress.maxHitPoints} HP
+          {Math.max(0, fortress.hitPoints)} / {fortress.maxHitPoints} HP
         </div>
       </div>
     </div>

@@ -9,6 +9,7 @@ import Hexagon from './Hexagon';
 import Card from './Card';
 import Fortress from './Fortress';
 import HelpPopup from './HelpPopup';
+import CardDetailPopup from './CardDetailPopup';
 
 const CORRIDOR_LENGTH = 10;
 const CORRIDOR_WIDTH = 4;
@@ -19,12 +20,14 @@ const Game: React.FC = () => {
   const [highlightedAttackHexes, setHighlightedAttackHexes] = useState<HexPosition[]>([]);
   const [highlightedSpawnHexes, setHighlightedSpawnHexes] = useState<HexPosition[]>([]);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
-  const [hoverAction, setHoverAction] = useState<'move' | 'attack' | null>(null);
+  const [hoverAction, setHoverAction] = useState<'move' | 'attack' | 'fortress-attack' | null>(null);
   const [notification, setNotification] = useState<string>('');
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const [cardDetailView, setCardDetailView] = useState<CardType | null>(null);
+  const [cardDetailPopup, setCardDetailPopup] = useState<CardType | null>(null);
   const [hasShownWelcome, setHasShownWelcome] = useState<boolean>(false);
   const [selectedHexPosition, setSelectedHexPosition] = useState<HexPosition | null>(null);
+  const [turnCount, setTurnCount] = useState<number>(0);
 
   // Helper function to deal random cards to a player
   const dealRandomCards = (owner: 'player1' | 'player2', count: number): CardType[] => {
@@ -120,46 +123,56 @@ const Game: React.FC = () => {
       c.id === card.id ? { ...c, position, ap: 0 } : c // Units cannot act on turn they're placed
     );
     
+    // Find the next card in hand to auto-select
+    const currentPlayerHandCards = gameState.cards.filter(c => 
+      c.owner === gameState.currentPlayer && !c.position && c.id !== card.id
+    );
+    
+    let nextSelectedCard = null;
+    if (currentPlayerHandCards.length > 0) {
+      // Select the first available card in hand
+      nextSelectedCard = currentPlayerHandCards[0];
+    }
+    
     setGameState({
       ...gameState,
       cards: updatedCards,
-      selectedCard: null,
+      selectedCard: nextSelectedCard,
     });
+    
+    // If we selected a next card, highlight spawn hexes for it
+    if (nextSelectedCard) {
+      const spawnEdge = nextSelectedCard.owner === 'player1' 
+        ? gameState.leftSpawnEdge 
+        : gameState.rightSpawnEdge;
+      
+      // Filter out occupied spawn hexes
+      const availableSpawnHexes = spawnEdge.filter(hex => 
+        !updatedCards.some(c => c.position && hexEqual(c.position, hex))
+      );
+      
+      setHighlightedSpawnHexes(availableSpawnHexes);
+    } else {
+      setHighlightedSpawnHexes([]);
+    }
   };
 
   const selectCard = (card: CardType) => {
     if (!gameState || card.owner !== gameState.currentPlayer) return;
     
-    const newSelectedCard = card.id === gameState.selectedCard?.id ? null : card;
-    
-    setGameState({
-      ...gameState,
-      selectedCard: newSelectedCard,
-    });
-    
-    // Show card detail on the side
-    if (newSelectedCard) {
-      setCardDetailView(newSelectedCard);
-      if (newSelectedCard.position) {
-        setSelectedHexPosition(newSelectedCard.position);
-        // Show available actions for units on the board
-        showAvailableActions(newSelectedCard);
-      } else {
-        setSelectedHexPosition(null);
-        // Clear action highlights for cards in hand
-        setHighlightedMoveHexes([]);
-        setHighlightedAttackHexes([]);
-      }
-    } else {
-      setCardDetailView(null);
-      setSelectedHexPosition(null);
-      setHighlightedMoveHexes([]);
-      setHighlightedAttackHexes([]);
-    }
-    
-    // Highlight spawn hexes if card is in hand (no position)
-    if (newSelectedCard && !newSelectedCard.position) {
-      const spawnEdge = newSelectedCard.owner === 'player1' 
+    // If card is in hand (no position), automatically prepare it for placement
+    if (!card.position) {
+      // Close any open popup
+      setCardDetailPopup(null);
+      
+      // Select the card for placement
+      setGameState({
+        ...gameState,
+        selectedCard: card,
+      });
+      
+      // Highlight spawn hexes
+      const spawnEdge = card.owner === 'player1' 
         ? gameState.leftSpawnEdge 
         : gameState.rightSpawnEdge;
       
@@ -169,13 +182,61 @@ const Game: React.FC = () => {
       );
       
       setHighlightedSpawnHexes(availableSpawnHexes);
-    } else {
-      setHighlightedSpawnHexes([]);
+      return;
     }
+    
+    const newSelectedCard = card.id === gameState.selectedCard?.id ? null : card;
+    
+    setGameState({
+      ...gameState,
+      selectedCard: newSelectedCard,
+    });
+    
+    // Show card detail on the side for cards on board
+    if (newSelectedCard && newSelectedCard.position) {
+      setCardDetailView(newSelectedCard);
+      setSelectedHexPosition(newSelectedCard.position);
+      // Show available actions for units on the board
+      showAvailableActions(newSelectedCard);
+    } else {
+      setCardDetailView(null);
+      setSelectedHexPosition(null);
+      setHighlightedMoveHexes([]);
+      setHighlightedAttackHexes([]);
+    }
+    
+    // Clear spawn hexes since this is a unit on board
+    setHighlightedSpawnHexes([]);
   };
 
   const handleCardClick = (card: CardType, event?: React.MouseEvent) => {
     selectCard(card);
+  };
+
+  // New function to handle placing cards from the detail popup
+  const handlePlaceCardFromPopup = (card: CardType) => {
+    if (!gameState || card.position) return;
+    
+    // Close the popup
+    setCardDetailPopup(null);
+    
+    // Select the card for placement
+    setGameState({
+      ...gameState,
+      selectedCard: card,
+    });
+    
+    // Highlight spawn hexes
+    const spawnEdge = card.owner === 'player1' 
+      ? gameState.leftSpawnEdge 
+      : gameState.rightSpawnEdge;
+    
+    // Filter out occupied spawn hexes
+    const availableSpawnHexes = spawnEdge.filter(hex => 
+      !gameState.cards.some(c => c.position && hexEqual(c.position, hex))
+    );
+    
+    setHighlightedSpawnHexes(availableSpawnHexes);
   };
 
   // New function to show available actions when a unit is selected
@@ -224,47 +285,87 @@ const Game: React.FC = () => {
     // Find the hex tile
     const hexTile = gameState.hexagons.find(h => hexEqual(h, targetHex));
     
-    // Update card position
-    const updatedCards = gameState.cards.map(c =>
-      c.id === gameState.selectedCard!.id ? { ...c, position: targetHex, ap: 0 } : c
-    );
+    // Check if moving to enemy spawn zone
+    const isEnemySpawnZone = (gameState.selectedCard.owner === 'player1' && 
+                             gameState.rightSpawnEdge.some(hex => hexEqual(hex, targetHex))) ||
+                            (gameState.selectedCard.owner === 'player2' && 
+                             gameState.leftSpawnEdge.some(hex => hexEqual(hex, targetHex)));
     
-    // Reveal and collect hex reward if available
+    let updatedCards = gameState.cards;
+    let updatedFortresses = { ...gameState.fortresses };
+    let spawnZoneMessage = '';
+    
+    if (isEnemySpawnZone) {
+      // Unit reached enemy spawn zone - deal fortress damage and remove unit
+      const enemyOwner = gameState.selectedCard.owner === 'player1' ? 'player2' : 'player1';
+      const unitHP = gameState.selectedCard.hitPoints;
+      
+      updatedFortresses[enemyOwner].hitPoints -= unitHP;
+      updatedCards = gameState.cards.filter(c => c.id !== gameState.selectedCard!.id);
+      
+      spawnZoneMessage = `🏰 Your unit reached enemy spawn zone! Enemy fortress takes ${unitHP} damage! Unit disappears.`;
+    } else {
+      // Normal movement
+      updatedCards = gameState.cards.map(c =>
+        c.id === gameState.selectedCard!.id ? { ...c, position: targetHex, ap: 0 } : c
+      );
+    }
+    
+    // Reveal and collect hex reward if available (only for normal movement)
     let updatedHexagons = gameState.hexagons;
     let newCards = updatedCards;
     let rewardMessage = '';
     
-    if (hexTile && !hexTile.isRevealed) {
-      // Reveal the hex
-      updatedHexagons = gameState.hexagons.map(h =>
-        hexEqual(h, targetHex) ? { ...h, isRevealed: true } : h
-      );
+    if (!isEnemySpawnZone) {
+      if (hexTile && !hexTile.isRevealed) {
+        // Reveal the hex
+        updatedHexagons = gameState.hexagons.map(h =>
+          hexEqual(h, targetHex) ? { ...h, isRevealed: true } : h
+        );
+      }
+      
+      if (hexTile && hexTile.reward && !hexTile.isCollected) {
+        // Collect the reward - add card to player's hand
+        const rewardCard: CardType = {
+          ...hexTile.reward,
+          id: `reward-${gameState.currentPlayer}-${Date.now()}-${Math.random()}`,
+          owner: gameState.currentPlayer,
+          ap: 0,
+        };
+        
+        newCards = [...newCards, rewardCard];
+        
+        // Mark hex as collected
+        updatedHexagons = updatedHexagons.map(h =>
+          hexEqual(h, targetHex) ? { ...h, isCollected: true } : h
+        );
+        
+        rewardMessage = `🎉 Collected: ${hexTile.reward.name}!`;
+      }
     }
     
-    if (hexTile && hexTile.reward && !hexTile.isCollected) {
-      // Collect the reward - add card to player's hand
-      const rewardCard: CardType = {
-        ...hexTile.reward,
-        id: `reward-${gameState.currentPlayer}-${Date.now()}-${Math.random()}`,
-        owner: gameState.currentPlayer,
-        ap: 0,
-      };
-      
-      newCards = [...newCards, rewardCard];
-      
-      // Mark hex as collected
-      updatedHexagons = updatedHexagons.map(h =>
-        hexEqual(h, targetHex) ? { ...h, isCollected: true } : h
-      );
-      
-      rewardMessage = `🎉 Collected: ${hexTile.reward.name}!`;
+    // Check for winner
+    let winner = null;
+    if (updatedFortresses.player1.hitPoints <= 0 && updatedFortresses.player2.hitPoints <= 0) {
+      // Both fortresses destroyed - player with higher remaining fortress HP wins, or current player if tied
+      if (updatedFortresses.player1.hitPoints === updatedFortresses.player2.hitPoints) {
+        winner = gameState.currentPlayer; // Current player wins in case of perfect tie
+      } else {
+        winner = updatedFortresses.player1.hitPoints > updatedFortresses.player2.hitPoints ? 'player1' : 'player2';
+      }
+    } else if (updatedFortresses.player1.hitPoints <= 0) {
+      winner = 'player2';
+    } else if (updatedFortresses.player2.hitPoints <= 0) {
+      winner = 'player1';
     }
     
     setGameState({
       ...gameState,
       hexagons: updatedHexagons,
       cards: newCards,
+      fortresses: updatedFortresses,
       selectedCard: null,
+      winner: winner as 'player1' | 'player2' | null,
     });
     setHighlightedMoveHexes([]);
     setHighlightedAttackHexes([]);
@@ -272,10 +373,11 @@ const Game: React.FC = () => {
     setCardDetailView(null);
     setSelectedHexPosition(null);
     
-    // Show reward notification
-    if (rewardMessage) {
-      setNotification(rewardMessage);
-      setTimeout(() => setNotification(''), 3000);
+    // Show appropriate notification
+    const finalMessage = spawnZoneMessage || rewardMessage;
+    if (finalMessage) {
+      setNotification(finalMessage);
+      setTimeout(() => setNotification(''), 4000);
     }
   };
 
@@ -292,16 +394,21 @@ const Game: React.FC = () => {
     }
     
     let updatedCards = gameState.cards;
+    let updatedFortresses = { ...gameState.fortresses };
     const attackerHP = gameState.selectedCard.hitPoints;
     const defenderHP = targetCard.hitPoints;
     const attackerPosition = gameState.selectedCard.position!;
     const defenderPosition = targetCard.position!;
     
-    // New HP-based combat system
+    // New HP-based combat system with fortress damage (only victim's fortress takes damage)
     if (attackerHP > defenderHP) {
       // Attacker wins - defender is eliminated, attacker advances to defender's hex
       // Attacker takes damage equal to defender's HP
       const attackerNewHP = attackerHP - defenderHP;
+      
+      // Apply fortress damage equal to defeated unit's HP (only defender's fortress)
+      const defenderFortress = updatedFortresses[targetCard.owner];
+      defenderFortress.hitPoints -= defenderHP;
       
       updatedCards = gameState.cards
         .filter(c => c.id !== targetCard.id) // Remove defeated unit
@@ -310,12 +417,16 @@ const Game: React.FC = () => {
           : c
         );
       
-      setNotification(`⚔️ Victory! Enemy defeated! Your unit advances and takes ${defenderHP} damage.`);
+      setNotification(`⚔️ Victory! Enemy defeated! Your unit advances and takes ${defenderHP} damage. Enemy fortress takes ${defenderHP} damage!`);
       
     } else if (defenderHP > attackerHP) {
       // Defender wins - attacker is eliminated, defender advances to attacker's hex
       // Defender takes damage equal to attacker's HP
       const defenderNewHP = defenderHP - attackerHP;
+      
+      // Apply fortress damage equal to defeated unit's HP (only attacker's fortress)
+      const attackerFortress = updatedFortresses[gameState.selectedCard.owner];
+      attackerFortress.hitPoints -= attackerHP;
       
       updatedCards = gameState.cards
         .filter(c => c.id !== gameState.selectedCard!.id) // Remove defeated unit
@@ -324,23 +435,49 @@ const Game: React.FC = () => {
           : c
         );
       
-      setNotification(`💔 Defeat! Your unit was eliminated! Enemy advances and takes ${attackerHP} damage.`);
+      setNotification(`💔 Defeat! Your unit was eliminated! Enemy advances and takes ${attackerHP} damage. Your fortress takes ${attackerHP} damage!`);
       
     } else {
-      // Equal HP - both units are destroyed
+      // Equal HP - both units are destroyed (no fortress damage for ties)
       updatedCards = gameState.cards.filter(c => 
         c.id !== targetCard.id && c.id !== gameState.selectedCard!.id
       );
-      setNotification('💥 Equal strength! Both units destroyed in combat!');
+      setNotification(`💥 Equal strength! Both units destroyed in combat! No fortress damage for ties.`);
+    }
+    
+    // Check for winner
+    let winner = null;
+    if (updatedFortresses.player1.hitPoints <= 0 && updatedFortresses.player2.hitPoints <= 0) {
+      // Both fortresses destroyed - player with higher remaining fortress HP wins, or current player if tied
+      if (updatedFortresses.player1.hitPoints === updatedFortresses.player2.hitPoints) {
+        winner = gameState.currentPlayer; // Current player wins in case of perfect tie
+      } else {
+        winner = updatedFortresses.player1.hitPoints > updatedFortresses.player2.hitPoints ? 'player1' : 'player2';
+      }
+    } else if (updatedFortresses.player1.hitPoints <= 0) {
+      winner = 'player2';
+    } else if (updatedFortresses.player2.hitPoints <= 0) {
+      winner = 'player1';
     }
     
     // Show notification for 3 seconds
-    setTimeout(() => setNotification(''), 3000);
+    setTimeout(() => setNotification(''), 4000); // Longer duration for more text
+    
+    // Check for additional victory condition (no units and no cards)
+    if (!winner) {
+      winner = checkVictoryCondition(updatedCards);
+      if (winner) {
+        const winnerName = winner === 'player1' ? 'Player 1 (Blue)' : 'Player 2 (Red)';
+        setNotification(`🎉 ${winnerName} wins! The opponent has no units on the board and no cards in hand.`);
+      }
+    }
     
     setGameState({
       ...gameState,
       cards: updatedCards,
+      fortresses: updatedFortresses,
       selectedCard: null,
+      winner: winner as 'player1' | 'player2' | null,
     });
     setHighlightedMoveHexes([]);
     setHighlightedAttackHexes([]);
@@ -440,27 +577,124 @@ const Game: React.FC = () => {
     return false;
   };
 
+  // Check if a player has lost (no units on board and no cards in hand)
+  const checkVictoryCondition = (cards: CardType[]): 'player1' | 'player2' | null => {
+    const player1UnitsOnBoard = cards.filter(c => c.owner === 'player1' && c.position).length;
+    const player1CardsInHand = cards.filter(c => c.owner === 'player1' && !c.position).length;
+    
+    const player2UnitsOnBoard = cards.filter(c => c.owner === 'player2' && c.position).length;
+    const player2CardsInHand = cards.filter(c => c.owner === 'player2' && !c.position).length;
+    
+    // Player 1 wins if Player 2 has no units on board and no cards in hand
+    if (player2UnitsOnBoard === 0 && player2CardsInHand === 0) {
+      return 'player1';
+    }
+    
+    // Player 2 wins if Player 1 has no units on board and no cards in hand
+    if (player1UnitsOnBoard === 0 && player1CardsInHand === 0) {
+      return 'player2';
+    }
+    
+    return null; // No victory yet
+  };
+
   const endTurn = () => {
     if (!gameState) return;
     
     const nextPlayer = gameState.currentPlayer === 'player1' ? 'player2' : 'player1';
+    const newTurnCount = turnCount + 1;
     
     // Reset AP for all cards owned by the next player
     const updatedCards = gameState.cards.map(c => 
       c.owner === nextPlayer && c.position ? { ...c, ap: 1 } : c
     );
+
+    // Check for victory condition after updating cards
+    const winner = checkVictoryCondition(updatedCards);
+    if (winner) {
+      const winnerName = winner === 'player1' ? 'Player 1 (Blue)' : 'Player 2 (Red)';
+      setNotification(`🎉 ${winnerName} wins! The opponent has no units on the board and no cards in hand.`);
+      return; // Don't continue the turn if someone has won
+    }
+    
+    // Respawn rewards on empty hexes every 3 turns (to avoid flooding the board)
+    let updatedHexagons = gameState.hexagons;
+    let rewardsAdded = 0;
+    
+    if (newTurnCount % 3 === 0) {
+      const respawnResult = respawnRewards(gameState.hexagons, updatedCards);
+      updatedHexagons = respawnResult.updatedHexagons;
+      rewardsAdded = respawnResult.rewardsAdded;
+    }
     
     setGameState({
       ...gameState,
       cards: updatedCards,
+      hexagons: updatedHexagons,
       currentPlayer: nextPlayer,
       selectedCard: null,
     });
+    setTurnCount(newTurnCount);
     setHighlightedMoveHexes([]);
     setHighlightedAttackHexes([]);
     setHighlightedSpawnHexes([]);
     setCardDetailView(null);
     setSelectedHexPosition(null);
+    
+    // Show notification if rewards were added
+    if (rewardsAdded > 0) {
+      setNotification(`✨ ${rewardsAdded} new reward${rewardsAdded > 1 ? 's' : ''} appeared on the battlefield!`);
+      setTimeout(() => setNotification(''), 3000);
+    }
+  };
+
+  // Function to respawn rewards on previously visited empty hexes
+  const respawnRewards = (hexagons: HexTile[], cards: CardType[]): { updatedHexagons: HexTile[], rewardsAdded: number } => {
+    // Find eligible hexes: revealed, no current reward, not occupied, not spawn edges
+    const eligibleHexes = hexagons.filter(hex => {
+      const isOccupied = cards.some(c => c.position && hexEqual(c.position, hex));
+      const isSpawnEdge = gameState!.leftSpawnEdge.some(spawn => hexEqual(spawn, hex)) ||
+                         gameState!.rightSpawnEdge.some(spawn => hexEqual(spawn, hex));
+      
+      return hex.isRevealed && 
+             !hex.reward && 
+             !isOccupied && 
+             !isSpawnEdge; // Include all revealed empty hexes, not just previously collected ones
+    });
+    
+    // If we have at least 2 eligible hexes, randomly select 2 for new rewards
+    if (eligibleHexes.length >= 2) {
+      const selectedHexes: HexTile[] = [];
+      const availableHexes = [...eligibleHexes];
+      
+      // Randomly select 2 hexes
+      for (let i = 0; i < 2 && availableHexes.length > 0; i++) {
+        const randomIndex = Math.floor(Math.random() * availableHexes.length);
+        selectedHexes.push(availableHexes[randomIndex]);
+        availableHexes.splice(randomIndex, 1);
+      }
+      
+      // Add rewards to selected hexes
+      const updatedHexagons = hexagons.map(hex => {
+        const isSelected = selectedHexes.some(selected => hexEqual(selected, hex));
+        if (isSelected) {
+          // Randomly select a reward card template
+          const randomCardIndex = Math.floor(Math.random() * CARD_TEMPLATES.length);
+          const newReward = CARD_TEMPLATES[randomCardIndex];
+          
+          return {
+            ...hex,
+            reward: newReward,
+            isCollected: false, // Reset collection status
+          };
+        }
+        return hex;
+      });
+      
+      return { updatedHexagons, rewardsAdded: selectedHexes.length };
+    }
+    
+    return { updatedHexagons: hexagons, rewardsAdded: 0 };
   };
 
   const handleHexClick = (hex: HexPosition) => {
@@ -525,6 +759,13 @@ const Game: React.FC = () => {
       {/* Help Popup */}
       <HelpPopup isOpen={showHelp} onClose={() => setShowHelp(false)} />
       
+      {/* Card Detail Popup */}
+      <CardDetailPopup 
+        card={cardDetailPopup} 
+        onClose={() => setCardDetailPopup(null)}
+        onPlaceCard={handlePlaceCardFromPopup}
+      />
+      
       {/* Reward Notification */}
       {notification && (
         <div className="fixed top-16 sm:top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 sm:px-8 py-2 sm:py-4 rounded-lg shadow-lg z-50 text-lg sm:text-xl font-bold animate-bounce max-w-[90vw] text-center">
@@ -557,6 +798,13 @@ const Game: React.FC = () => {
               Current Turn: <span className={gameState.currentPlayer === 'player1' ? 'text-blue-600' : 'text-red-600'}>
                 {gameState.currentPlayer === 'player1' ? 'Player 1' : 'Player 2'}
               </span>
+            </div>
+            {/* Turn Counter */}
+            <div className="text-sm sm:text-base bg-purple-100 px-2 sm:px-3 py-1 rounded-lg border-2 border-purple-300">
+              <span className="font-bold text-purple-700">Turn {turnCount + 1}</span>
+              {(turnCount + 1) % 3 === 0 && (
+                <span className="text-xs text-purple-600 block">✨ Rewards may spawn!</span>
+              )}
             </div>
             {/* Help Button */}
             <button
@@ -710,9 +958,16 @@ const Game: React.FC = () => {
                     isAttackable={isAttackTarget}
                     onClick={() => handleHexClick(hexTile)}
                     onMouseEnter={() => {
-                      if (isMoveTarget) setHoverAction('move');
-                      else if (isAttackTarget) setHoverAction('attack');
-                      else setHoverAction(null);
+                      if (isMoveTarget) {
+                        // Check if this is an enemy spawn zone
+                        const isEnemySpawn = (gameState.selectedCard?.owner === 'player1' && isRightSpawn) ||
+                                           (gameState.selectedCard?.owner === 'player2' && isLeftSpawn);
+                        setHoverAction(isEnemySpawn ? 'fortress-attack' : 'move');
+                      } else if (isAttackTarget) {
+                        setHoverAction('attack');
+                      } else {
+                        setHoverAction(null);
+                      }
                     }}
                     onMouseLeave={() => setHoverAction(null)}
                     hasCard={hasCard}
@@ -992,10 +1247,12 @@ const Game: React.FC = () => {
           style={{
             left: mousePosition.x + 10,
             top: mousePosition.y - 30,
-            backgroundColor: hoverAction === 'move' ? '#10B981' : '#EF4444',
+            backgroundColor: hoverAction === 'move' ? '#10B981' : 
+                           hoverAction === 'fortress-attack' ? '#8B5CF6' : '#EF4444',
           }}
         >
-          {hoverAction === 'move' ? '🏃 Move' : '⚔️ Attack'}
+          {hoverAction === 'move' ? '🏃 Move' : 
+           hoverAction === 'fortress-attack' ? '🏰 Attack Fortress' : '⚔️ Attack'}
         </div>
       )}
     </div>

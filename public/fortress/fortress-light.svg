@@ -1,0 +1,42 @@
+<svg width="128" height="160" viewBox="0 0 128 160" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fortress base -->
+  <rect x="16" y="80" width="96" height="80" fill="#D4A574" stroke="#8B4513" stroke-width="3"/>
+  
+  <!-- Towers -->
+  <rect x="8" y="40" width="24" height="80" fill="#D4A574" stroke="#8B4513" stroke-width="2"/>
+  <rect x="96" y="40" width="24" height="80" fill="#D4A574" stroke="#8B4513" stroke-width="2"/>
+  
+  <!-- Tower tops -->
+  <polygon points="8,40 20,25 32,40" fill="#8B4513"/>
+  <polygon points="96,40 108,25 120,40" fill="#8B4513"/>
+  
+  <!-- Castle battlements -->
+  <rect x="16" y="70" width="96" height="10" fill="#8B4513"/>
+  <rect x="16" y="70" width="8" height="20" fill="#8B4513"/>
+  <rect x="32" y="70" width="8" height="20" fill="#8B4513"/>
+  <rect x="48" y="70" width="8" height="20" fill="#8B4513"/>
+  <rect x="64" y="70" width="8" height="20" fill="#8B4513"/>
+  <rect x="80" y="70" width="8" height="20" fill="#8B4513"/>
+  <rect x="96" y="70" width="8" height="20" fill="#8B4513"/>
+  <rect x="104" y="70" width="8" height="20" fill="#8B4513"/>
+  
+  <!-- Gate -->
+  <rect x="56" y="120" width="16" height="40" fill="#4A4A4A" rx="8"/>
+  
+  <!-- Windows -->
+  <rect x="32" y="100" width="8" height="8" fill="#FFD700"/>
+  <rect x="88" y="100" width="8" height="8" fill="#FFD700"/>
+  <rect x="32" y="120" width="8" height="8" fill="#FFD700"/>
+  <rect x="88" y="120" width="8" height="8" fill="#FFD700"/>
+  
+  <!-- Light damage - more cracks -->
+  <line x1="18" y1="82" x2="35" y2="98" stroke="#8B0000" stroke-width="2"/>
+  <line x1="95" y1="88" x2="110" y2="102" stroke="#8B0000" stroke-width="2"/>
+  <line x1="40" y1="85" x2="50" y2="95" stroke="#8B0000" stroke-width="1"/>
+  <line x1="78" y1="92" x2="88" y2="102" stroke="#8B0000" stroke-width="1"/>
+  
+  <!-- Eyes and slight frown -->
+  <circle cx="48" cy="95" r="3" fill="#8B4513"/>
+  <circle cx="80" cy="95" r="3" fill="#8B4513"/>
+  <path d="M 52 107 Q 64 112 76 107" stroke="#8B4513" stroke-width="2" fill="none"/>
+</svg>
