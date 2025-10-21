@@ -743,16 +743,25 @@ const Game: React.FC = () => {
               if (!card.position) return null;
               const { x, y } = hexToPixel(card.position);
               const isSelected = gameState.selectedCard?.id === card.id;
+              const isAttackTarget = highlightedAttackHexes.some(h => hexEqual(h, card.position!));
+              const isOwnUnit = card.owner === gameState.currentPlayer;
               
               return (
                 <g 
                   key={card.id} 
                   transform={`translate(${x}, ${y})`}
                   onClick={(e) => {
-                    e.stopPropagation();
-                    selectCard(card);
+                    // Only stop propagation for own units, let enemy units pass through to hex
+                    if (isOwnUnit) {
+                      e.stopPropagation();
+                      selectCard(card);
+                    }
                   }}
-                  style={{ cursor: 'pointer' }}
+                  style={{ 
+                    cursor: isOwnUnit ? 'pointer' : 'default',
+                    pointerEvents: isAttackTarget ? 'none' : 'auto'
+                  }}
+                  className="touch-manipulation"
                 >
                   {/* Unit circle background */}
                   <circle
@@ -763,6 +772,7 @@ const Game: React.FC = () => {
                     opacity="0.9"
                     stroke={isSelected ? '#FFD700' : '#000'}
                     strokeWidth={isSelected ? '4' : '2'}
+                    style={{ pointerEvents: isAttackTarget ? 'none' : 'auto' }}
                   />
                   {/* Unit image */}
                   <image
@@ -772,6 +782,7 @@ const Game: React.FC = () => {
                     width="40"
                     height="40"
                     preserveAspectRatio="xMidYMid meet"
+                    style={{ pointerEvents: 'none' }}
                   />
                   {/* HP bar */}
                   <text
@@ -783,6 +794,7 @@ const Game: React.FC = () => {
                     fontWeight="bold"
                     stroke="#000"
                     strokeWidth="0.5"
+                    style={{ pointerEvents: 'none' }}
                   >
                     {card.hitPoints}HP
                   </text>
@@ -796,6 +808,7 @@ const Game: React.FC = () => {
                         fill="#10B981"
                         stroke="#000"
                         strokeWidth="2"
+                        style={{ pointerEvents: 'none' }}
                       />
                       <text
                         x="22"
@@ -804,6 +817,7 @@ const Game: React.FC = () => {
                         fill="white"
                         fontSize="12"
                         fontWeight="bold"
+                        style={{ pointerEvents: 'none' }}
                       >
                         {card.ap}
                       </text>
