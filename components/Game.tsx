@@ -7,6 +7,8 @@ import { CARD_TEMPLATES } from '@/utils/cardTemplates';
 import Hexagon from './Hexagon';
 import Card from './Card';
 import Fortress from './Fortress';
+import HelpPopup from './HelpPopup';
+import CardDetailPopup from './CardDetailPopup';
 
 const CORRIDOR_LENGTH = 10;
 const CORRIDOR_WIDTH = 4;
@@ -16,6 +18,9 @@ const Game: React.FC = () => {
   const [actionMode, setActionMode] = useState<'move' | 'attack' | null>(null);
   const [highlightedHexes, setHighlightedHexes] = useState<HexPosition[]>([]);
   const [notification, setNotification] = useState<string>('');
+  const [showHelp, setShowHelp] = useState<boolean>(false);
+  const [cardDetailView, setCardDetailView] = useState<CardType | null>(null);
+  const [hasShownWelcome, setHasShownWelcome] = useState<boolean>(false);
 
   // Helper function to deal random cards to a player
   const dealRandomCards = (owner: 'player1' | 'player2', count: number): CardType[] => {
@@ -68,6 +73,10 @@ const Game: React.FC = () => {
     };
     
     setGameState(initialState);
+    
+    // Show welcome help popup on first load
+    setShowHelp(true);
+    setHasShownWelcome(true);
   }, []);
 
 
@@ -128,6 +137,18 @@ const Game: React.FC = () => {
     }
   };
 
+  const handleCardClick = (card: CardType, event?: React.MouseEvent) => {
+    // Check if it's a right-click or if user is holding Ctrl/Cmd
+    const isDetailView = event?.button === 2 || event?.ctrlKey || event?.metaKey;
+    
+    if (isDetailView) {
+      event?.preventDefault();
+      setCardDetailView(card);
+    } else {
+      selectCard(card);
+    }
+  };
+
   const handleMove = () => {
     if (!gameState?.selectedCard || !gameState.selectedCard.position) return;
     
@@ -152,12 +173,17 @@ const Game: React.FC = () => {
     
     setActionMode('attack');
     
-    // Highlight hexes within attack range
+    // Highlight hexes within attack range (including hexes with enemy units)
     const attackableHexes: HexPosition[] = [];
     gameState.hexagons.forEach(hex => {
       const distance = hexDistance(gameState.selectedCard!.position!, hex);
       
       if (distance <= gameState.selectedCard!.range && distance > 0) {
+        // Check if there's an enemy unit on this hex
+        const cardOnHex = gameState.cards.find(c => c.position && hexEqual(c.position, hex));
+        const isEnemyUnit = cardOnHex && cardOnHex.owner !== gameState.selectedCard!.owner;
+        
+        // Include all hexes in range, but enemy units are valid targets
         attackableHexes.push(hex);
       }
     });
@@ -235,24 +261,57 @@ const Game: React.FC = () => {
     let updatedFortresses = gameState.fortresses;
     
     if (targetCard && targetCard.owner !== gameState.selectedCard.owner) {
-      // Attack card
-      const newHp = targetCard.hitPoints - gameState.selectedCard.attackDamage;
+      // Unit vs Unit combat - BOTH units take damage
+      const attackerDamage = gameState.selectedCard.attackDamage;
+      const defenderDamage = targetCard.attackDamage;
       
-      if (newHp <= 0) {
-        // Remove card
-        updatedCards = gameState.cards.filter(c => c.id !== targetCard.id);
-      } else {
-        // Update HP
-        updatedCards = gameState.cards.map(c =>
-          c.id === targetCard.id ? { ...c, hitPoints: newHp } : c
+      // Calculate new HP for both units
+      const targetNewHp = targetCard.hitPoints - attackerDamage;
+      const attackerNewHp = gameState.selectedCard.hitPoints - defenderDamage;
+      
+      // Remove destroyed units or update HP
+      if (targetNewHp <= 0 && attackerNewHp <= 0) {
+        // Both units destroyed
+        updatedCards = gameState.cards.filter(c => 
+          c.id !== targetCard.id && c.id !== gameState.selectedCard!.id
         );
+        setNotification('💥 Both units destroyed in combat!');
+      } else if (targetNewHp <= 0) {
+        // Only target destroyed, attacker survives but takes damage
+        updatedCards = gameState.cards
+          .filter(c => c.id !== targetCard.id)
+          .map(c => c.id === gameState.selectedCard!.id 
+            ? { ...c, hitPoints: attackerNewHp, ap: 0 } 
+            : c
+          );
+        setNotification(`⚔️ Enemy unit destroyed! Your unit took ${defenderDamage} damage.`);
+      } else if (attackerNewHp <= 0) {
+        // Only attacker destroyed
+        updatedCards = gameState.cards
+          .filter(c => c.id !== gameState.selectedCard!.id)
+          .map(c => c.id === targetCard.id 
+            ? { ...c, hitPoints: targetNewHp } 
+            : c
+          );
+        setNotification('💔 Your unit was destroyed in combat!');
+      } else {
+        // Both units survive with reduced HP
+        updatedCards = gameState.cards.map(c => {
+          if (c.id === targetCard.id) return { ...c, hitPoints: targetNewHp };
+          if (c.id === gameState.selectedCard!.id) return { ...c, hitPoints: attackerNewHp, ap: 0 };
+          return c;
+        });
+        setNotification(`⚔️ Both units damaged! Attacker: ${attackerNewHp}HP, Defender: ${targetNewHp}HP`);
       }
+      
+      // Show notification for 3 seconds
+      setTimeout(() => setNotification(''), 3000);
+    } else {
+      // No valid target, just mark as used
+      updatedCards = updatedCards.map(c =>
+        c.id === gameState.selectedCard!.id ? { ...c, ap: 0 } : c
+      );
     }
-    
-    // Mark card as having used AP
-    updatedCards = updatedCards.map(c =>
-      c.id === gameState.selectedCard!.id ? { ...c, ap: 0 } : c
-    );
     
     setGameState({
       ...gameState,
@@ -369,7 +428,11 @@ const Game: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 p-4 overflow-auto">
+    <div className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 p-4">
+      {/* Help and Card Detail Popups */}
+      <HelpPopup isOpen={showHelp} onClose={() => setShowHelp(false)} />
+      <CardDetailPopup card={cardDetailView} onClose={() => setCardDetailView(null)} />
+      
       {/* Reward Notification */}
       {notification && (
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-8 py-4 rounded-lg shadow-lg z-50 text-xl font-bold animate-bounce">
@@ -395,19 +458,31 @@ const Game: React.FC = () => {
       )}
       
       {/* Top Bar */}
-      <div className="bg-white/90 rounded-lg p-4 mb-4">
+      <div className="bg-white/90 rounded-lg p-4 mb-4 shadow-xl">
         <div className="flex justify-between items-center mb-2">
-          <div className="text-xl font-bold">
-            Current Turn: {gameState.currentPlayer === 'player1' ? 'Player 1' : 'Player 2'}
+          <div className="flex items-center gap-4">
+            <div className="text-2xl font-bold">
+              Current Turn: <span className={gameState.currentPlayer === 'player1' ? 'text-blue-600' : 'text-red-600'}>
+                {gameState.currentPlayer === 'player1' ? 'Player 1' : 'Player 2'}
+              </span>
+            </div>
+            {/* Help Button */}
+            <button
+              onClick={() => setShowHelp(true)}
+              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-bold text-xl px-5 py-2 rounded-full shadow-lg transform hover:scale-110 transition-all"
+              title="Show game instructions and tips"
+            >
+              ❓
+            </button>
           </div>
           <button
             onClick={endTurn}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded font-bold"
+            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-8 py-3 rounded-lg font-bold text-xl shadow-lg transform hover:scale-105 transition-all"
           >
-            End Turn
+            End Turn ➡️
           </button>
         </div>
-        <div className="text-sm text-gray-600">
+        <div className="text-base text-gray-700 font-semibold">
           {!gameState.selectedCard && '📝 Select a card from your hand below to place it on the board'}
           {gameState.selectedCard && !gameState.selectedCard.position && '📍 Click a highlighted blue spawn hex (P1) or red spawn hex (P2) to place your unit'}
           {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && '⚡ Unit selected! Click "Move" to move (collect cards from ? hexes) or "Attack" to attack enemies'}
@@ -428,7 +503,7 @@ const Game: React.FC = () => {
         </div>
 
         {/* Game Board */}
-        <div className="flex-1 bg-white/10 rounded-lg p-4 flex items-center justify-center min-h-[400px]">
+        <div className="flex-1 bg-white/10 rounded-lg p-4 flex items-center justify-center min-h-[500px]">
           <svg
             width={width}
             height={height}
@@ -488,6 +563,10 @@ const Game: React.FC = () => {
                   onClick={(e) => {
                     e.stopPropagation();
                     selectCard(card);
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setCardDetailView(card);
                   }}
                   style={{ cursor: 'pointer' }}
                 >
@@ -578,78 +657,77 @@ const Game: React.FC = () => {
         </div>
       </div>
 
-      {/* Game Instructions */}
-      <div className="mt-4 bg-white/90 rounded-lg p-4">
-        <h3 className="text-lg font-bold mb-2">How to Play</h3>
-        <div className="text-sm text-gray-700">
-          <ul className="list-disc list-inside space-y-1">
-            <li><strong>Starting:</strong> Each player begins with 3 random cards dealt to their hand</li>
-            <li><strong>Place Units:</strong> Click a card in your hand, then click a highlighted spawn hex (P1 = left blue edge, P2 = right red edge) to place it on the board</li>
-            <li><strong>Action Points:</strong> Units get 1 AP at the start of their owner's turn (units cannot act on the turn they're placed)</li>
-            <li><strong>Move:</strong> Select a unit with AP, click "Move" button, then click a highlighted hex to move there</li>
-            <li><strong>Attack:</strong> Select a unit with AP, click "Attack" button, then click a highlighted enemy unit or fortress to attack</li>
-            <li><strong>🎴 Collect Cards:</strong> Move onto unrevealed hexes (marked with "?") to reveal and collect hidden card rewards!</li>
-            <li><strong>🌟 Strategy:</strong> Balance advancing toward the enemy fortress with collecting powerful cards from the map</li>
-            <li><strong>Victory:</strong> Reduce your opponent's fortress to 0 HP to win!</li>
-          </ul>
-        </div>
-      </div>
-
       {/* Player Hands */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 mb-4">
         {/* Player 1 Hand */}
-        <div className="bg-blue-500/30 rounded-lg p-4">
-          <h3 className="text-white font-bold mb-2">Player 1 Hand</h3>
-          <div className="flex gap-4 flex-wrap">
+        <div className="bg-gradient-to-br from-blue-500/40 to-blue-700/40 rounded-xl p-4 shadow-xl border-4 border-blue-400">
+          <h3 className="text-white font-bold text-xl mb-3 text-center">🔵 Player 1 Hand</h3>
+          <div className="flex gap-4 flex-wrap justify-center">
             {player1Hand.map(card => (
-              <Card
-                key={card.id}
-                card={card}
-                isSelected={gameState.selectedCard?.id === card.id}
-                onClick={() => selectCard(card)}
-                onAttack={handleAttack}
-                onMove={handleMove}
-                showActions={false}
-              />
+              <div key={card.id} onContextMenu={(e) => {
+                e.preventDefault();
+                setCardDetailView(card);
+              }}>
+                <Card
+                  card={card}
+                  isSelected={gameState.selectedCard?.id === card.id}
+                  onClick={() => selectCard(card)}
+                  onAttack={handleAttack}
+                  onMove={handleMove}
+                  showActions={false}
+                />
+              </div>
             ))}
+            {player1Hand.length === 0 && (
+              <p className="text-white/70 text-center w-full py-4">No cards in hand</p>
+            )}
           </div>
         </div>
 
         {/* Player 2 Hand */}
-        <div className="bg-red-500/30 rounded-lg p-4">
-          <h3 className="text-white font-bold mb-2">Player 2 Hand</h3>
-          <div className="flex gap-4 flex-wrap">
+        <div className="bg-gradient-to-br from-red-500/40 to-red-700/40 rounded-xl p-4 shadow-xl border-4 border-red-400">
+          <h3 className="text-white font-bold text-xl mb-3 text-center">🔴 Player 2 Hand</h3>
+          <div className="flex gap-4 flex-wrap justify-center">
             {player2Hand.map(card => (
-              <Card
-                key={card.id}
-                card={card}
-                isSelected={gameState.selectedCard?.id === card.id}
-                onClick={() => selectCard(card)}
-                onAttack={handleAttack}
-                onMove={handleMove}
-                showActions={false}
-              />
+              <div key={card.id} onContextMenu={(e) => {
+                e.preventDefault();
+                setCardDetailView(card);
+              }}>
+                <Card
+                  card={card}
+                  isSelected={gameState.selectedCard?.id === card.id}
+                  onClick={() => selectCard(card)}
+                  onAttack={handleAttack}
+                  onMove={handleMove}
+                  showActions={false}
+                />
+              </div>
             ))}
+            {player2Hand.length === 0 && (
+              <p className="text-white/70 text-center w-full py-4">No cards in hand</p>
+            )}
           </div>
         </div>
       </div>
 
       {/* Selected Card Actions */}
       {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && (
-        <div className="mt-4 bg-white/90 rounded-lg p-4">
-          <h3 className="text-lg font-bold mb-2">Unit Actions</h3>
-          <div className="flex gap-4 justify-center">
+        <div className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 rounded-xl p-6 shadow-2xl border-4 border-yellow-500">
+          <h3 className="text-2xl font-bold mb-4 text-center text-white drop-shadow-lg">⚔️ Unit Actions</h3>
+          <div className="flex gap-6 justify-center">
             <button
               onClick={handleMove}
-              className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded font-bold"
+              className="bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-10 py-5 rounded-xl font-bold text-2xl shadow-lg transform hover:scale-110 transition-all border-4 border-green-300"
             >
-              Move (Speed: {gameState.selectedCard.speed})
+              🏃 Move
+              <div className="text-sm font-normal">Speed: {gameState.selectedCard.speed}</div>
             </button>
             <button
               onClick={handleAttack}
-              className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded font-bold"
+              className="bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-10 py-5 rounded-xl font-bold text-2xl shadow-lg transform hover:scale-110 transition-all border-4 border-red-300"
             >
-              Attack (Range: {gameState.selectedCard.range})
+              ⚔️ Attack
+              <div className="text-sm font-normal">Range: {gameState.selectedCard.range}</div>
             </button>
             <button
               onClick={() => {
@@ -657,11 +735,14 @@ const Game: React.FC = () => {
                 setActionMode(null);
                 setHighlightedHexes([]);
               }}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded font-bold"
+              className="bg-gradient-to-br from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-10 py-5 rounded-xl font-bold text-2xl shadow-lg transform hover:scale-110 transition-all border-4 border-gray-300"
             >
-              Cancel
+              ❌ Cancel
             </button>
           </div>
+          <p className="text-center text-white text-sm mt-3 font-semibold">
+            💡 Right-click or Ctrl+Click any card to see detailed stats!
+          </p>
         </div>
       )}
     </div>
