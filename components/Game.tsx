@@ -438,11 +438,15 @@ const Game: React.FC = () => {
       setNotification(`💔 Defeat! Your unit was eliminated! Enemy advances and takes ${attackerHP} damage. Your fortress takes ${attackerHP} damage!`);
       
     } else {
-      // Equal HP - both units are destroyed (no fortress damage for ties)
+      // Equal HP - both units are destroyed, defender's fortress takes damage
+      // Apply fortress damage equal to defeated defender's HP (defender always takes fortress damage)
+      const defenderFortress = updatedFortresses[targetCard.owner];
+      defenderFortress.hitPoints -= defenderHP;
+      
       updatedCards = gameState.cards.filter(c => 
         c.id !== targetCard.id && c.id !== gameState.selectedCard!.id
       );
-      setNotification(`💥 Equal strength! Both units destroyed in combat! No fortress damage for ties.`);
+      setNotification(`💥 Equal strength! Both units destroyed in combat! Defender's fortress takes ${defenderHP} damage.`);
     }
     
     // Check for winner
