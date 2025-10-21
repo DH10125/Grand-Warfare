@@ -772,7 +772,10 @@ const Game: React.FC = () => {
       
       {/* Reward Notification */}
       {notification && (
-        <div className="fixed top-16 sm:top-20 left-1/2 transform -translate-x-1/2 bg-white text-gray-800 px-4 sm:px-8 py-2 sm:py-4 rounded-lg shadow-2xl z-50 text-lg sm:text-xl font-bold animate-bounce max-w-[90vw] text-center border-2 border-gray-300">
+        <div 
+          className="fixed top-16 sm:top-20 left-1/2 transform -translate-x-1/2 bg-white text-gray-800 px-4 sm:px-8 py-2 sm:py-4 rounded-lg shadow-2xl z-50 text-lg sm:text-xl font-bold animate-bounce max-w-[90vw] text-center border-2 border-gray-300"
+          style={{ backgroundColor: 'white', opacity: 1 }}
+        >
           {notification}
         </div>
       )}
