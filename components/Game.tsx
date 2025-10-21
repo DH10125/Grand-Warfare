@@ -83,6 +83,20 @@ const Game: React.FC = () => {
     setHasShownWelcome(true);
   }, []);
 
+  // Auto-switch turns when no moves are available
+  useEffect(() => {
+    if (!gameState || gameState.winner) return;
+    
+    // Small delay to prevent immediate switching during game state updates
+    const timeoutId = setTimeout(() => {
+      if (!hasAvailableMoves()) {
+        endTurn();
+      }
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, [gameState?.cards, gameState?.currentPlayer]);
+
 
 
   const placeCard = (card: CardType, position: HexPosition) => {
@@ -368,6 +382,62 @@ const Game: React.FC = () => {
     setHighlightedSpawnHexes([]);
     setCardDetailView(null);
     setSelectedHexPosition(null);
+  };
+
+  // Check if current player has any possible moves
+  const hasAvailableMoves = (): boolean => {
+    if (!gameState) return false;
+    
+    // First, check if player can place any cards from hand
+    const cardsInHand = gameState.cards.filter(card => 
+      card.owner === gameState.currentPlayer && !card.position
+    );
+    
+    if (cardsInHand.length > 0) {
+      const spawnEdge = gameState.currentPlayer === 'player1' 
+        ? gameState.leftSpawnEdge 
+        : gameState.rightSpawnEdge;
+      
+      // Check if any spawn hex is available
+      const hasAvailableSpawn = spawnEdge.some(hex => 
+        !gameState.cards.some(c => c.position && hexEqual(c.position, hex))
+      );
+      
+      if (hasAvailableSpawn) return true;
+    }
+    
+    // Then check all units belonging to current player that are on the board
+    const currentPlayerUnits = gameState.cards.filter(card => 
+      card.owner === gameState.currentPlayer && 
+      card.position && 
+      card.ap > 0
+    );
+    
+    // Check if any unit can move or attack
+    for (const unit of currentPlayerUnits) {
+      // Check if unit can move to any valid position
+      const canMove = gameState.hexagons.some(hex => {
+        const distance = hexDistance(unit.position!, hex);
+        const isOccupied = gameState.cards.some(c => c.position && hexEqual(c.position, hex));
+        return distance <= unit.speed && distance > 0 && !isOccupied;
+      });
+      
+      if (canMove) return true;
+      
+      // Check if unit can attack any enemy
+      const canAttack = gameState.hexagons.some(hex => {
+        const distance = hexDistance(unit.position!, hex);
+        if (distance <= unit.range && distance > 0) {
+          const cardOnHex = gameState.cards.find(c => c.position && hexEqual(c.position, hex));
+          return cardOnHex && cardOnHex.owner !== unit.owner;
+        }
+        return false;
+      });
+      
+      if (canAttack) return true;
+    }
+    
+    return false;
   };
 
   const endTurn = () => {
