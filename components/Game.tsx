@@ -15,8 +15,11 @@ const CORRIDOR_WIDTH = 4;
 
 const Game: React.FC = () => {
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [actionMode, setActionMode] = useState<'move' | 'attack' | null>(null);
-  const [highlightedHexes, setHighlightedHexes] = useState<HexPosition[]>([]);
+  const [highlightedMoveHexes, setHighlightedMoveHexes] = useState<HexPosition[]>([]);
+  const [highlightedAttackHexes, setHighlightedAttackHexes] = useState<HexPosition[]>([]);
+  const [highlightedSpawnHexes, setHighlightedSpawnHexes] = useState<HexPosition[]>([]);
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
+  const [hoverAction, setHoverAction] = useState<'move' | 'attack' | null>(null);
   const [notification, setNotification] = useState<string>('');
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const [cardDetailView, setCardDetailView] = useState<CardType | null>(null);
@@ -119,19 +122,25 @@ const Game: React.FC = () => {
       ...gameState,
       selectedCard: newSelectedCard,
     });
-    setActionMode(null);
     
     // Show card detail on the side
     if (newSelectedCard) {
       setCardDetailView(newSelectedCard);
       if (newSelectedCard.position) {
         setSelectedHexPosition(newSelectedCard.position);
+        // Show available actions for units on the board
+        showAvailableActions(newSelectedCard);
       } else {
         setSelectedHexPosition(null);
+        // Clear action highlights for cards in hand
+        setHighlightedMoveHexes([]);
+        setHighlightedAttackHexes([]);
       }
     } else {
       setCardDetailView(null);
       setSelectedHexPosition(null);
+      setHighlightedMoveHexes([]);
+      setHighlightedAttackHexes([]);
     }
     
     // Highlight spawn hexes if card is in hand (no position)
@@ -145,9 +154,9 @@ const Game: React.FC = () => {
         !gameState.cards.some(c => c.position && hexEqual(c.position, hex))
       );
       
-      setHighlightedHexes(availableSpawnHexes);
+      setHighlightedSpawnHexes(availableSpawnHexes);
     } else {
-      setHighlightedHexes([]);
+      setHighlightedSpawnHexes([]);
     }
   };
 
@@ -155,52 +164,47 @@ const Game: React.FC = () => {
     selectCard(card);
   };
 
-  const handleMove = () => {
-    if (!gameState?.selectedCard || !gameState.selectedCard.position) return;
-    
-    setActionMode('move');
-    
-    // Highlight hexes within movement range
-    const reachableHexes: HexPosition[] = [];
-    gameState.hexagons.forEach(hex => {
-      const distance = hexDistance(gameState.selectedCard!.position!, hex);
-      const isOccupied = gameState.cards.some(c => c.position && hexEqual(c.position, hex));
+  // New function to show available actions when a unit is selected
+  const showAvailableActions = (card: CardType) => {
+    if (!card.position || card.ap <= 0) {
+      setHighlightedMoveHexes([]);
+      setHighlightedAttackHexes([]);
+      return;
+    }
+
+    // Calculate movement options
+    const moveHexes: HexPosition[] = [];
+    gameState!.hexagons.forEach(hex => {
+      const distance = hexDistance(card.position!, hex);
+      const isOccupied = gameState!.cards.some(c => c.position && hexEqual(c.position, hex));
       
-      if (distance <= gameState.selectedCard!.speed && distance > 0 && !isOccupied) {
-        reachableHexes.push(hex);
+      if (distance <= card.speed && distance > 0 && !isOccupied) {
+        moveHexes.push(hex);
       }
     });
-    
-    setHighlightedHexes(reachableHexes);
-  };
 
-  const handleAttack = () => {
-    if (!gameState?.selectedCard || !gameState.selectedCard.position) return;
-    
-    setActionMode('attack');
-    
-    // Highlight only hexes with enemy units within attack range
-    const attackableHexes: HexPosition[] = [];
-    gameState.hexagons.forEach(hex => {
-      const distance = hexDistance(gameState.selectedCard!.position!, hex);
+    // Calculate attack options
+    const attackHexes: HexPosition[] = [];
+    gameState!.hexagons.forEach(hex => {
+      const distance = hexDistance(card.position!, hex);
       
-      if (distance <= gameState.selectedCard!.range && distance > 0) {
+      if (distance <= card.range && distance > 0) {
         // Check if there's an enemy unit on this hex
-        const cardOnHex = gameState.cards.find(c => c.position && hexEqual(c.position, hex));
-        const isEnemyUnit = cardOnHex && cardOnHex.owner !== gameState.selectedCard!.owner;
+        const cardOnHex = gameState!.cards.find(c => c.position && hexEqual(c.position, hex));
+        const isEnemyUnit = cardOnHex && cardOnHex.owner !== card.owner;
         
-        // Only include hexes with enemy units as valid attack targets
         if (isEnemyUnit) {
-          attackableHexes.push(hex);
+          attackHexes.push(hex);
         }
       }
     });
-    
-    setHighlightedHexes(attackableHexes);
+
+    setHighlightedMoveHexes(moveHexes);
+    setHighlightedAttackHexes(attackHexes);
   };
 
   const executeMove = (targetHex: HexPosition) => {
-    if (!gameState?.selectedCard || actionMode !== 'move') return;
+    if (!gameState?.selectedCard) return;
     if (gameState.selectedCard.ap <= 0) return; // Check AP
     
     // Find the hex tile
@@ -248,8 +252,9 @@ const Game: React.FC = () => {
       cards: newCards,
       selectedCard: null,
     });
-    setActionMode(null);
-    setHighlightedHexes([]);
+    setHighlightedMoveHexes([]);
+    setHighlightedAttackHexes([]);
+    setHighlightedSpawnHexes([]);
     setCardDetailView(null);
     setSelectedHexPosition(null);
     
@@ -261,7 +266,7 @@ const Game: React.FC = () => {
   };
 
   const executeAttack = (targetHex: HexPosition) => {
-    if (!gameState?.selectedCard || actionMode !== 'attack') return;
+    if (!gameState?.selectedCard) return;
     if (gameState.selectedCard.ap <= 0) return; // Check AP
     
     // Find target card at hex
@@ -327,14 +332,15 @@ const Game: React.FC = () => {
       fortresses: updatedFortresses,
       selectedCard: null,
     });
-    setActionMode(null);
-    setHighlightedHexes([]);
+    setHighlightedMoveHexes([]);
+    setHighlightedAttackHexes([]);
+    setHighlightedSpawnHexes([]);
     setCardDetailView(null);
     setSelectedHexPosition(null);
   };
 
   const attackFortress = (fortressOwner: 'player1' | 'player2') => {
-    if (!gameState?.selectedCard || actionMode !== 'attack') return;
+    if (!gameState?.selectedCard) return;
     if (gameState.selectedCard.owner === fortressOwner) return;
     if (gameState.selectedCard.ap <= 0) return; // Check AP
     
@@ -360,8 +366,9 @@ const Game: React.FC = () => {
       selectedCard: null,
       winner: winner as 'player1' | 'player2' | null,
     });
-    setActionMode(null);
-    setHighlightedHexes([]);
+    setHighlightedMoveHexes([]);
+    setHighlightedAttackHexes([]);
+    setHighlightedSpawnHexes([]);
     setCardDetailView(null);
     setSelectedHexPosition(null);
   };
@@ -382,8 +389,9 @@ const Game: React.FC = () => {
       currentPlayer: nextPlayer,
       selectedCard: null,
     });
-    setActionMode(null);
-    setHighlightedHexes([]);
+    setHighlightedMoveHexes([]);
+    setHighlightedAttackHexes([]);
+    setHighlightedSpawnHexes([]);
     setCardDetailView(null);
     setSelectedHexPosition(null);
   };
@@ -391,17 +399,16 @@ const Game: React.FC = () => {
   const handleHexClick = (hex: HexPosition) => {
     if (!gameState?.selectedCard) return;
     
-    if (actionMode === 'move') {
-      const isHighlighted = highlightedHexes.some(h => hexEqual(h, hex));
-      if (isHighlighted) {
-        executeMove(hex);
-      }
-    } else if (actionMode === 'attack') {
-      const isHighlighted = highlightedHexes.some(h => hexEqual(h, hex));
-      if (isHighlighted) {
-        executeAttack(hex);
-      }
-    } else if (!gameState.selectedCard.position) {
+    // Check if this is a move or attack action
+    const isMoveTarget = highlightedMoveHexes.some(h => hexEqual(h, hex));
+    const isAttackTarget = highlightedAttackHexes.some(h => hexEqual(h, hex));
+    const isSpawnTarget = highlightedSpawnHexes.some(h => hexEqual(h, hex));
+    
+    if (isMoveTarget) {
+      executeMove(hex);
+    } else if (isAttackTarget) {
+      executeAttack(hex);
+    } else if (isSpawnTarget && !gameState.selectedCard.position) {
       // Place card
       placeCard(gameState.selectedCard, hex);
     }
@@ -426,7 +433,7 @@ const Game: React.FC = () => {
 
   // Check if fortress can be attacked
   const canAttackFortress = (fortressOwner: 'player1' | 'player2'): boolean => {
-    if (!gameState?.selectedCard || actionMode !== 'attack') return false;
+    if (!gameState?.selectedCard) return false;
     if (gameState.selectedCard.owner === fortressOwner) return false;
     if (!gameState.selectedCard.position) return false;
     if (gameState.selectedCard.ap <= 0) return false;
@@ -442,7 +449,12 @@ const Game: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 p-4">
+    <div 
+      className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 p-4"
+      onMouseMove={(e) => {
+        setMousePosition({ x: e.clientX, y: e.clientY });
+      }}
+    >
       {/* Help Popup */}
       <HelpPopup isOpen={showHelp} onClose={() => setShowHelp(false)} />
       
@@ -498,7 +510,7 @@ const Game: React.FC = () => {
         <div className="text-base text-gray-700 font-semibold">
           {!gameState.selectedCard && '📝 Select a card from your hand below to place it on the board'}
           {gameState.selectedCard && !gameState.selectedCard.position && '📍 Click a highlighted blue spawn hex (P1) or red spawn hex (P2) to place your unit'}
-          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && '⚡ Unit selected! Click "Move" or "Attack" above the unit to choose your action'}
+          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && '⚡ Unit selected! Blue highlights show movement options, red highlights show attack targets. Click any highlighted hex to perform that action!'}
           {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap === 0 && '⏸️ This unit has already acted this turn - select another unit or end your turn'}
         </div>
       </div>
@@ -622,9 +634,9 @@ const Game: React.FC = () => {
             {/* Render hexagons */}
             {gameState.hexagons.map((hexTile, index) => {
               const hasCard = cardsOnBoard.some(c => c.position && hexEqual(c.position, hexTile));
-              const isPlacementTarget = !actionMode && gameState.selectedCard && !gameState.selectedCard.position && highlightedHexes.some(h => hexEqual(h, hexTile));
-              const isHighlighted = Boolean((actionMode === 'move' || isPlacementTarget) && highlightedHexes.some(h => hexEqual(h, hexTile)));
-              const isAttackable = Boolean(actionMode === 'attack' && highlightedHexes.some(h => hexEqual(h, hexTile)));
+              const isSpawnTarget = highlightedSpawnHexes.some(h => hexEqual(h, hexTile));
+              const isMoveTarget = highlightedMoveHexes.some(h => hexEqual(h, hexTile));
+              const isAttackTarget = highlightedAttackHexes.some(h => hexEqual(h, hexTile));
               const isLeftSpawn = gameState.leftSpawnEdge.some(h => hexEqual(h, hexTile));
               const isRightSpawn = gameState.rightSpawnEdge.some(h => hexEqual(h, hexTile));
               const isSpawnEdge = isLeftSpawn || isRightSpawn;
@@ -633,9 +645,15 @@ const Game: React.FC = () => {
                 <g key={`${hexTile.q}-${hexTile.r}`}>
                   <Hexagon
                     tile={hexTile}
-                    isHighlighted={isHighlighted}
-                    isAttackable={isAttackable}
+                    isHighlighted={isSpawnTarget || isMoveTarget}
+                    isAttackable={isAttackTarget}
                     onClick={() => handleHexClick(hexTile)}
+                    onMouseEnter={() => {
+                      if (isMoveTarget) setHoverAction('move');
+                      else if (isAttackTarget) setHoverAction('attack');
+                      else setHoverAction(null);
+                    }}
+                    onMouseLeave={() => setHoverAction(null)}
                     hasCard={hasCard}
                     isSpawnEdge={isSpawnEdge}
                     spawnOwner={isLeftSpawn ? 'player1' : isRightSpawn ? 'player2' : undefined}
@@ -749,84 +767,6 @@ const Game: React.FC = () => {
               );
             })}
             
-            {/* Action buttons above selected hex */}
-            {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && selectedHexPosition && (
-              <g transform={`translate(${hexToPixel(selectedHexPosition).x}, ${hexToPixel(selectedHexPosition).y - 80})`}>
-                {/* Background for buttons */}
-                <rect
-                  x="-100"
-                  y="-25"
-                  width="200"
-                  height="50"
-                  rx="10"
-                  fill="rgba(0, 0, 0, 0.8)"
-                  stroke="#FFD700"
-                  strokeWidth="2"
-                />
-                {/* Move button */}
-                <g 
-                  transform="translate(-50, 0)"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleMove();
-                  }}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <rect
-                    x="-35"
-                    y="-15"
-                    width="70"
-                    height="30"
-                    rx="5"
-                    fill="#10B981"
-                    stroke="#059669"
-                    strokeWidth="2"
-                    className="hover:opacity-80"
-                  />
-                  <text
-                    x="0"
-                    y="5"
-                    textAnchor="middle"
-                    fill="white"
-                    fontSize="12"
-                    fontWeight="bold"
-                  >
-                    🏃 Move
-                  </text>
-                </g>
-                {/* Attack button */}
-                <g 
-                  transform="translate(50, 0)"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAttack();
-                  }}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <rect
-                    x="-35"
-                    y="-15"
-                    width="70"
-                    height="30"
-                    rx="5"
-                    fill="#EF4444"
-                    stroke="#DC2626"
-                    strokeWidth="2"
-                    className="hover:opacity-80"
-                  />
-                  <text
-                    x="0"
-                    y="5"
-                    textAnchor="middle"
-                    fill="white"
-                    fontSize="12"
-                    fontWeight="bold"
-                  >
-                    ⚔️ Attack
-                  </text>
-                </g>
-              </g>
-            )}
           </svg>
         </div>
 
@@ -949,8 +889,6 @@ const Game: React.FC = () => {
                   card={card}
                   isSelected={gameState.selectedCard?.id === card.id}
                   onClick={() => selectCard(card)}
-                  onAttack={handleAttack}
-                  onMove={handleMove}
                   showActions={false}
                 />
               </div>
@@ -971,8 +909,6 @@ const Game: React.FC = () => {
                   card={card}
                   isSelected={gameState.selectedCard?.id === card.id}
                   onClick={() => selectCard(card)}
-                  onAttack={handleAttack}
-                  onMove={handleMove}
                   showActions={false}
                 />
               </div>
@@ -983,6 +919,20 @@ const Game: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* Action Tooltip */}
+      {hoverAction && mousePosition && (
+        <div
+          className="fixed pointer-events-none z-50 px-3 py-1 rounded-lg text-white font-bold text-sm shadow-lg"
+          style={{
+            left: mousePosition.x + 10,
+            top: mousePosition.y - 30,
+            backgroundColor: hoverAction === 'move' ? '#10B981' : '#EF4444',
+          }}
+        >
+          {hoverAction === 'move' ? '🏃 Move' : '⚔️ Attack'}
+        </div>
+      )}
     </div>
   );
 };

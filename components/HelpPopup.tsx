@@ -11,17 +11,18 @@ const HelpPopup: React.FC<HelpPopupProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div 
-        className="bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-500 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-8 border-4 border-yellow-400"
+        className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-8 border-4 border-yellow-400"
+        style={{ backgroundColor: 'white' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-4xl font-bold text-white drop-shadow-lg">🎮 How to Play Grand Warfare</h2>
+          <h2 className="text-4xl font-bold text-gray-800">🎮 How to Play Grand Warfare</h2>
           <button
             onClick={onClose}
-            className="text-white hover:text-yellow-300 text-3xl font-bold transition-colors"
+            className="text-gray-600 hover:text-gray-800 text-3xl font-bold transition-colors"
           >
             ✕
           </button>

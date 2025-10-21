@@ -7,6 +7,8 @@ interface HexagonProps {
   isHighlighted?: boolean;
   isAttackable?: boolean;
   onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   hasCard?: boolean;
   isSpawnEdge?: boolean;
   spawnOwner?: 'player1' | 'player2';
@@ -17,6 +19,8 @@ const Hexagon: React.FC<HexagonProps> = ({
   isHighlighted = false, 
   isAttackable = false,
   onClick,
+  onMouseEnter,
+  onMouseLeave,
   hasCard = false,
   isSpawnEdge = false,
   spawnOwner
@@ -91,6 +95,8 @@ const Hexagon: React.FC<HexagonProps> = ({
     <g 
       transform={`translate(${x}, ${y})`}
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       style={{ cursor: onClick ? 'pointer' : 'default' }}
     >
       {tooltipText && (
