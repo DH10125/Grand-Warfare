@@ -303,7 +303,7 @@ const Game: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 p-4">
+    <div className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 p-4 overflow-auto">
       {/* Winner Banner */}
       {gameState.winner && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -337,13 +337,13 @@ const Game: React.FC = () => {
         <div className="text-sm text-gray-600">
           {!gameState.selectedCard && '📝 Click "Add Card" buttons below to draw a card, then click a spawn hex to place it'}
           {gameState.selectedCard && !gameState.selectedCard.position && '📍 Click a highlighted spawn hex to place your unit'}
-          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && '⚡ Unit selected! Choose Move or Attack'}
+          {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && '⚡ Unit selected! Choose Move or Attack below'}
           {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap === 0 && '⏸️ This unit has already acted this turn'}
         </div>
       </div>
 
       {/* Main Game Area */}
-      <div className="flex gap-4">
+      <div className="flex gap-4 mb-4">
         {/* Left Fortress */}
         <div className="flex-shrink-0">
           <Fortress 
@@ -355,12 +355,12 @@ const Game: React.FC = () => {
         </div>
 
         {/* Game Board */}
-        <div className="flex-1 bg-white/10 rounded-lg p-4 overflow-auto">
+        <div className="flex-1 bg-white/10 rounded-lg p-4 flex items-center justify-center min-h-[400px]">
           <svg
             width={width}
             height={height}
             viewBox={`${minX} ${minY} ${width} ${height}`}
-            className="mx-auto"
+            className="mx-auto max-w-full h-auto"
           >
             {/* Render hexagons */}
             {gameState.hexagons.map((hex, index) => {
@@ -531,7 +531,7 @@ const Game: React.FC = () => {
       </div>
 
       {/* Player Hands */}
-      <div className="mt-4 grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         {/* Player 1 Hand */}
         <div className="bg-blue-500/30 rounded-lg p-4">
           <h3 className="text-white font-bold mb-2">Player 1 Hand</h3>
@@ -544,7 +544,7 @@ const Game: React.FC = () => {
                 onClick={() => selectCard(card)}
                 onAttack={handleAttack}
                 onMove={handleMove}
-                showActions={gameState.selectedCard?.id === card.id && card.position !== undefined}
+                showActions={false}
               />
             ))}
           </div>
@@ -562,7 +562,7 @@ const Game: React.FC = () => {
                 onClick={() => selectCard(card)}
                 onAttack={handleAttack}
                 onMove={handleMove}
-                showActions={gameState.selectedCard?.id === card.id && card.position !== undefined}
+                showActions={false}
               />
             ))}
           </div>
@@ -571,8 +571,9 @@ const Game: React.FC = () => {
 
       {/* Selected Card Actions */}
       {gameState.selectedCard && gameState.selectedCard.position && gameState.selectedCard.ap > 0 && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg p-4 shadow-lg">
-          <div className="flex gap-4">
+        <div className="mt-4 bg-white/90 rounded-lg p-4">
+          <h3 className="text-lg font-bold mb-2">Unit Actions</h3>
+          <div className="flex gap-4 justify-center">
             <button
               onClick={handleMove}
               className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded font-bold"
