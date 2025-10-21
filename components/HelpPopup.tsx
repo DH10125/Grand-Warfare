@@ -28,7 +28,7 @@ const HelpPopup: React.FC<HelpPopupProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Game Rules */}
-        <div className="bg-white/95 rounded-xl p-6 mb-4 shadow-lg">
+        <div className="bg-white rounded-xl p-6 mb-4 shadow-lg">
           <h3 className="text-2xl font-bold text-purple-700 mb-4">📖 Game Rules</h3>
           <ul className="space-y-3 text-gray-800">
             <li className="flex items-start gap-3">
@@ -91,7 +91,7 @@ const HelpPopup: React.FC<HelpPopupProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Strategy Tips */}
-        <div className="bg-white/95 rounded-xl p-6 mb-4 shadow-lg">
+        <div className="bg-white rounded-xl p-6 mb-4 shadow-lg">
           <h3 className="text-2xl font-bold text-green-700 mb-4">💡 Strategy Tips</h3>
           <ul className="space-y-2 text-gray-800">
             <li className="flex items-start gap-2">
