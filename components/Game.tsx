@@ -179,7 +179,7 @@ const Game: React.FC = () => {
     
     setActionMode('attack');
     
-    // Highlight hexes within attack range (including hexes with enemy units)
+    // Highlight only hexes with enemy units within attack range
     const attackableHexes: HexPosition[] = [];
     gameState.hexagons.forEach(hex => {
       const distance = hexDistance(gameState.selectedCard!.position!, hex);
@@ -189,8 +189,10 @@ const Game: React.FC = () => {
         const cardOnHex = gameState.cards.find(c => c.position && hexEqual(c.position, hex));
         const isEnemyUnit = cardOnHex && cardOnHex.owner !== gameState.selectedCard!.owner;
         
-        // Include all hexes in range, but enemy units are valid targets
-        attackableHexes.push(hex);
+        // Only include hexes with enemy units as valid attack targets
+        if (isEnemyUnit) {
+          attackableHexes.push(hex);
+        }
       }
     });
     
@@ -265,61 +267,59 @@ const Game: React.FC = () => {
     // Find target card at hex
     const targetCard = gameState.cards.find(c => c.position && hexEqual(c.position, targetHex));
     
+    // If there's no enemy unit at the target hex, don't execute the attack
+    if (!targetCard || targetCard.owner === gameState.selectedCard.owner) {
+      return;
+    }
+    
     let updatedCards = gameState.cards;
     let updatedFortresses = gameState.fortresses;
     
-    if (targetCard && targetCard.owner !== gameState.selectedCard.owner) {
-      // Unit vs Unit combat - BOTH units take damage
-      const attackerDamage = gameState.selectedCard.attackDamage;
-      const defenderDamage = targetCard.attackDamage;
-      
-      // Calculate new HP for both units
-      const targetNewHp = targetCard.hitPoints - attackerDamage;
-      const attackerNewHp = gameState.selectedCard.hitPoints - defenderDamage;
-      
-      // Remove destroyed units or update HP
-      if (targetNewHp <= 0 && attackerNewHp <= 0) {
-        // Both units destroyed
-        updatedCards = gameState.cards.filter(c => 
-          c.id !== targetCard.id && c.id !== gameState.selectedCard!.id
-        );
-        setNotification('💥 Both units destroyed in combat!');
-      } else if (targetNewHp <= 0) {
-        // Only target destroyed, attacker survives but takes damage
-        updatedCards = gameState.cards
-          .filter(c => c.id !== targetCard.id)
-          .map(c => c.id === gameState.selectedCard!.id 
-            ? { ...c, hitPoints: attackerNewHp, ap: 0 } 
-            : c
-          );
-        setNotification(`⚔️ Enemy unit destroyed! Your unit took ${defenderDamage} damage.`);
-      } else if (attackerNewHp <= 0) {
-        // Only attacker destroyed
-        updatedCards = gameState.cards
-          .filter(c => c.id !== gameState.selectedCard!.id)
-          .map(c => c.id === targetCard.id 
-            ? { ...c, hitPoints: targetNewHp } 
-            : c
-          );
-        setNotification('💔 Your unit was destroyed in combat!');
-      } else {
-        // Both units survive with reduced HP
-        updatedCards = gameState.cards.map(c => {
-          if (c.id === targetCard.id) return { ...c, hitPoints: targetNewHp };
-          if (c.id === gameState.selectedCard!.id) return { ...c, hitPoints: attackerNewHp, ap: 0 };
-          return c;
-        });
-        setNotification(`⚔️ Both units damaged! Attacker: ${attackerNewHp}HP, Defender: ${targetNewHp}HP`);
-      }
-      
-      // Show notification for 3 seconds
-      setTimeout(() => setNotification(''), 3000);
-    } else {
-      // No valid target, just mark as used
-      updatedCards = updatedCards.map(c =>
-        c.id === gameState.selectedCard!.id ? { ...c, ap: 0 } : c
+    // Unit vs Unit combat - BOTH units take damage
+    const attackerDamage = gameState.selectedCard.attackDamage;
+    const defenderDamage = targetCard.attackDamage;
+    
+    // Calculate new HP for both units
+    const targetNewHp = targetCard.hitPoints - attackerDamage;
+    const attackerNewHp = gameState.selectedCard.hitPoints - defenderDamage;
+    
+    // Remove destroyed units or update HP
+    if (targetNewHp <= 0 && attackerNewHp <= 0) {
+      // Both units destroyed
+      updatedCards = gameState.cards.filter(c => 
+        c.id !== targetCard.id && c.id !== gameState.selectedCard!.id
       );
+      setNotification('💥 Both units destroyed in combat!');
+    } else if (targetNewHp <= 0) {
+      // Only target destroyed, attacker survives but takes damage
+      updatedCards = gameState.cards
+        .filter(c => c.id !== targetCard.id)
+        .map(c => c.id === gameState.selectedCard!.id 
+          ? { ...c, hitPoints: attackerNewHp, ap: 0 } 
+          : c
+        );
+      setNotification(`⚔️ Enemy unit destroyed! Your unit took ${defenderDamage} damage.`);
+    } else if (attackerNewHp <= 0) {
+      // Only attacker destroyed
+      updatedCards = gameState.cards
+        .filter(c => c.id !== gameState.selectedCard!.id)
+        .map(c => c.id === targetCard.id 
+          ? { ...c, hitPoints: targetNewHp } 
+          : c
+        );
+      setNotification('💔 Your unit was destroyed in combat!');
+    } else {
+      // Both units survive with reduced HP
+      updatedCards = gameState.cards.map(c => {
+        if (c.id === targetCard.id) return { ...c, hitPoints: targetNewHp };
+        if (c.id === gameState.selectedCard!.id) return { ...c, hitPoints: attackerNewHp, ap: 0 };
+        return c;
+      });
+      setNotification(`⚔️ Both units damaged! Attacker: ${attackerNewHp}HP, Defender: ${targetNewHp}HP`);
     }
+    
+    // Show notification for 3 seconds
+    setTimeout(() => setNotification(''), 3000);
     
     setGameState({
       ...gameState,
@@ -675,7 +675,7 @@ const Game: React.FC = () => {
                   }}
                   style={{ cursor: 'pointer' }}
                 >
-                  {/* Unit circle */}
+                  {/* Unit circle background */}
                   <circle
                     cx="0"
                     cy="0"
@@ -685,25 +685,25 @@ const Game: React.FC = () => {
                     stroke={isSelected ? '#FFD700' : '#000'}
                     strokeWidth={isSelected ? '4' : '2'}
                   />
-                  {/* Unit name */}
-                  <text
-                    x="0"
-                    y="-8"
-                    textAnchor="middle"
-                    fill="white"
-                    fontSize="16"
-                    fontWeight="bold"
-                  >
-                    {card.name[0]}
-                  </text>
+                  {/* Unit image */}
+                  <image
+                    href={card.imageUrl}
+                    x="-20"
+                    y="-20"
+                    width="40"
+                    height="40"
+                    preserveAspectRatio="xMidYMid meet"
+                  />
                   {/* HP bar */}
                   <text
                     x="0"
-                    y="8"
+                    y="40"
                     textAnchor="middle"
                     fill="white"
                     fontSize="11"
                     fontWeight="bold"
+                    stroke="#000"
+                    strokeWidth="0.5"
                   >
                     {card.hitPoints}HP
                   </text>
