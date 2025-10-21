@@ -1,4 +1,5 @@
-import { HexPosition } from '@/types/game';
+import { HexPosition, HexTile, CardTemplate } from '@/types/game';
+import { CARD_TEMPLATES } from './cardTemplates';
 
 export const HEX_SIZE = 40;
 
@@ -50,6 +51,56 @@ export function generateCorridorGrid(length: number = 10, width: number = 4): He
   for (let q = 0; q < length; q++) {
     for (let r = 0; r < width; r++) {
       hexes.push({ q, r });
+    }
+  }
+  
+  return hexes;
+}
+
+// Generate corridor grid with hidden card rewards
+export function generateCorridorGridWithRewards(length: number = 10, width: number = 4): HexTile[] {
+  const hexes: HexTile[] = [];
+  
+  for (let q = 0; q < length; q++) {
+    for (let r = 0; r < width; r++) {
+      // Don't place rewards on spawn edges (first and last columns)
+      const isSpawnEdge = q === 0 || q === length - 1;
+      
+      // Determine terrain type (10% chance of special terrain)
+      let terrainType: 'normal' | 'slow' | 'dangerous' = 'normal';
+      if (!isSpawnEdge && Math.random() < 0.1) {
+        terrainType = Math.random() < 0.5 ? 'slow' : 'dangerous';
+      }
+      
+      // Assign random card rewards to non-spawn hexes
+      // Some hexes may have no reward (about 30% chance of no reward for variety)
+      let reward: CardTemplate | undefined = undefined;
+      if (!isSpawnEdge && Math.random() > 0.3) {
+        // Better rewards are placed further from the spawn edges
+        const distanceFromEdge = Math.min(q, length - 1 - q);
+        const rewardQuality = Math.min(distanceFromEdge / (length / 2), 1);
+        
+        // Higher quality = more likely to get better cards
+        if (rewardQuality > 0.6 && Math.random() > 0.5) {
+          // Better cards (Patch of grass)
+          reward = CARD_TEMPLATES[1];
+        } else if (rewardQuality > 0.3 && Math.random() > 0.4) {
+          // Medium cards (Man)
+          reward = CARD_TEMPLATES[0];
+        } else {
+          // Weaker cards (Mouse)
+          reward = CARD_TEMPLATES[2];
+        }
+      }
+      
+      hexes.push({
+        q,
+        r,
+        reward,
+        isRevealed: isSpawnEdge, // Spawn edges are always revealed
+        isCollected: false,
+        terrainType,
+      });
     }
   }
   
