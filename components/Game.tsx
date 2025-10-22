@@ -28,6 +28,8 @@ const Game: React.FC = () => {
   const [hasShownWelcome, setHasShownWelcome] = useState<boolean>(false);
   const [selectedHexPosition, setSelectedHexPosition] = useState<HexPosition | null>(null);
   const [turnCount, setTurnCount] = useState<number>(0);
+  const [lastClickTime, setLastClickTime] = useState<number>(0);
+  const [lastClickedCardId, setLastClickedCardId] = useState<string | null>(null);
 
   // Helper function to deal random cards to a player
   const dealRandomCards = (owner: 'player1' | 'player2', count: number): CardType[] => {
@@ -192,14 +194,11 @@ const Game: React.FC = () => {
       selectedCard: newSelectedCard,
     });
     
-    // Show card detail on the side for cards on board
+    // Show available actions for units on the board (but not card detail)
     if (newSelectedCard && newSelectedCard.position) {
-      setCardDetailView(newSelectedCard);
       setSelectedHexPosition(newSelectedCard.position);
-      // Show available actions for units on the board
       showAvailableActions(newSelectedCard);
     } else {
-      setCardDetailView(null);
       setSelectedHexPosition(null);
       setHighlightedMoveHexes([]);
       setHighlightedAttackHexes([]);
@@ -209,8 +208,34 @@ const Game: React.FC = () => {
     setHighlightedSpawnHexes([]);
   };
 
+  const handleCardDoubleClick = (card: CardType) => {
+    if (!gameState || card.owner !== gameState.currentPlayer || !card.position) return;
+    
+    // Show card detail view only on double click
+    setCardDetailView(card);
+  };
+
   const handleCardClick = (card: CardType, event?: React.MouseEvent) => {
-    selectCard(card);
+    if (!card.position) {
+      // Cards in hand still work with single click
+      selectCard(card);
+      return;
+    }
+
+    // For cards on board, handle double-click detection
+    const currentTime = Date.now();
+    const timeDiff = currentTime - lastClickTime;
+    
+    if (lastClickedCardId === card.id && timeDiff < 300) {
+      // Double click detected
+      handleCardDoubleClick(card);
+    } else {
+      // Single click - just select the card
+      selectCard(card);
+    }
+    
+    setLastClickTime(currentTime);
+    setLastClickedCardId(card.id);
   };
 
   // New function to handle placing cards from the detail popup
@@ -1031,7 +1056,7 @@ const Game: React.FC = () => {
                     // Only stop propagation for own units, let enemy units pass through to hex
                     if (isOwnUnit) {
                       e.stopPropagation();
-                      selectCard(card);
+                      handleCardClick(card);
                     }
                   }}
                   style={{ 
