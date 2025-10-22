@@ -7,9 +7,10 @@ interface FortressProps {
   side: 'left' | 'right';
   isAttackable?: boolean;
   onClick?: () => void;
+  playerName?: string;
 }
 
-const Fortress: React.FC<FortressProps> = ({ fortress, side, isAttackable = false, onClick }) => {
+const Fortress: React.FC<FortressProps> = ({ fortress, side, isAttackable = false, onClick, playerName }) => {
   const hpPercentage = (fortress.hitPoints / fortress.maxHitPoints) * 100;
   
   // Determine which fortress image to use based on current HP
@@ -38,7 +39,7 @@ const Fortress: React.FC<FortressProps> = ({ fortress, side, isAttackable = fals
     >
       {/* Player Label - Moved to top */}
       <div className="mb-2 text-lg font-bold text-white">
-        {fortress.owner === 'player1' ? 'Player 1' : 'Player 2'}
+        {playerName || (fortress.owner === 'player1' ? 'Player 1' : 'Player 2')}
       </div>
       
       {/* Fortress Visual */}

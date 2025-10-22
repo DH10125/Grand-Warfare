@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { PlayerInfo } from '@/types/game';
+import HelpPopup from './HelpPopup';
 
 interface OnlineLobbyProps {
-  onGameStart: (socket: Socket, roomId: string, playerSlot: 'player1' | 'player2') => void;
+  socket: Socket | null;
+  onGameStart: (socket: Socket, roomId: string, playerSlot: 'player1' | 'player2', players: { player1?: PlayerInfo; player2?: PlayerInfo }) => void;
   onBack: () => void;
 }
 
@@ -21,8 +23,7 @@ interface JoinGameResponse {
   error?: string;
 }
 
-const OnlineLobby: React.FC<OnlineLobbyProps> = ({ onGameStart, onBack }) => {
-  const [socket, setSocket] = useState<Socket | null>(null);
+const OnlineLobby: React.FC<OnlineLobbyProps> = ({ socket, onGameStart, onBack }) => {
   const [mode, setMode] = useState<'menu' | 'create' | 'join' | 'waiting'>('menu');
   const [playerName, setPlayerName] = useState('');
   const [gameCode, setGameCode] = useState('');
@@ -36,40 +37,28 @@ const OnlineLobby: React.FC<OnlineLobbyProps> = ({ onGameStart, onBack }) => {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
+  const [showHelp, setShowHelp] = useState(true); // Show help on first entry
 
   useEffect(() => {
-    // Initialize socket connection
-    const socketInstance = io({
-      path: '/api/socket',
-    });
+    if (!socket) return;
 
-    socketInstance.on('connect', () => {
-      console.log('Connected to server');
-      setSocket(socketInstance);
-    });
-
-    socketInstance.on('disconnect', () => {
-      console.log('Disconnected from server');
-      setSocket(null);
-    });
-
-    socketInstance.on('player-joined', (data: { player: PlayerInfo; playerSlot: 'player1' | 'player2' }) => {
+    socket.on('player-joined', (data: { player: PlayerInfo; playerSlot: 'player1' | 'player2' }) => {
       setPlayers(prev => ({
         ...prev,
         [data.playerSlot]: data.player,
       }));
     });
 
-    socketInstance.on('player-ready-updated', (data: { playerSlot: 'player1' | 'player2'; isReady: boolean; players: any }) => {
+    socket.on('player-ready-updated', (data: { playerSlot: 'player1' | 'player2'; isReady: boolean; players: any }) => {
       setPlayers(data.players);
     });
 
-    socketInstance.on('game-started', (data: { gameCode: string; players: any }) => {
+    socket.on('game-started', (data: { gameCode: string; players: any }) => {
       console.log('Game started!', data);
-      onGameStart(socketInstance, roomId, playerSlot);
+      onGameStart(socket, roomId, playerSlot, data.players);
     });
 
-    socketInstance.on('player-disconnected', (data: { playerSlot: 'player1' | 'player2' }) => {
+    socket.on('player-disconnected', (data: { playerSlot: 'player1' | 'player2' }) => {
       setPlayers(prev => ({
         ...prev,
         [data.playerSlot]: prev[data.playerSlot] ? { ...prev[data.playerSlot]!, isConnected: false } : undefined,
@@ -77,9 +66,12 @@ const OnlineLobby: React.FC<OnlineLobbyProps> = ({ onGameStart, onBack }) => {
     });
 
     return () => {
-      socketInstance.disconnect();
+      socket.off('player-joined');
+      socket.off('player-ready-updated');
+      socket.off('game-started');
+      socket.off('player-disconnected');
     };
-  }, []);
+  }, [socket, onGameStart, roomId, playerSlot]);
 
   const createGame = () => {
     if (!socket || !playerName.trim()) return;
@@ -143,19 +135,44 @@ const OnlineLobby: React.FC<OnlineLobbyProps> = ({ onGameStart, onBack }) => {
 
   if (!socket) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 flex items-center justify-center p-4">
-        <div className="bg-white/90 rounded-3xl p-8 shadow-2xl max-w-md w-full text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-lg font-semibold text-gray-700">Connecting to server...</p>
+      <>
+        <div 
+          className="min-h-screen flex items-center justify-center p-4"
+          style={{
+            backgroundImage: 'url(/backgrounds/battle-scene-2.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundAttachment: 'fixed'
+          }}
+        >
+          {/* Enhanced semi-transparent overlay for better readability */}
+          <div className="absolute inset-0 bg-black/60"></div>
+          <div className="bg-white/70 backdrop-blur-md rounded-3xl p-8 shadow-2xl max-w-md w-full text-center relative z-10 border border-white/30" style={{ backgroundColor: 'rgba(255, 255, 255, 0.70)' }}>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-lg font-semibold text-gray-700">Connecting to server...</p>
+          </div>
         </div>
-      </div>
+        <HelpPopup isOpen={showHelp} onClose={() => setShowHelp(false)} />
+      </>
     );
   }
 
   if (mode === 'menu') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 flex items-center justify-center p-4">
-        <div className="bg-white/90 rounded-3xl p-8 shadow-2xl max-w-md w-full">
+      <div 
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{
+          backgroundImage: 'url(/backgrounds/battle-scene-2.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed'
+        }}
+      >
+        {/* Enhanced semi-transparent overlay for better readability */}
+        <div className="absolute inset-0 bg-black/60"></div>
+        <div className="bg-white/70 backdrop-blur-md rounded-3xl p-8 shadow-2xl max-w-md w-full relative z-10 border border-white/30" style={{ backgroundColor: 'rgba(255, 255, 255, 0.70)' }}>
           <div className="text-center mb-6">
             <h2 className="text-3xl font-bold text-gray-800 mb-2">🌐 Online Play</h2>
             <p className="text-gray-600">Connect with friends worldwide</p>
@@ -204,14 +221,26 @@ const OnlineLobby: React.FC<OnlineLobbyProps> = ({ onGameStart, onBack }) => {
             ← Back to Menu
           </button>
         </div>
+        <HelpPopup isOpen={showHelp} onClose={() => setShowHelp(false)} />
       </div>
     );
   }
 
   if (mode === 'create') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 flex items-center justify-center p-4">
-        <div className="bg-white/90 rounded-3xl p-8 shadow-2xl max-w-md w-full">
+      <div 
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{
+          backgroundImage: 'url(/backgrounds/battle-scene-2.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed'
+        }}
+      >
+        {/* Enhanced semi-transparent overlay for better readability */}
+        <div className="absolute inset-0 bg-black/60"></div>
+        <div className="bg-white/70 backdrop-blur-md rounded-3xl p-8 shadow-2xl max-w-md w-full relative z-10 border border-white/30" style={{ backgroundColor: 'rgba(255, 255, 255, 0.70)' }}>
           <div className="text-center mb-6">
             <h2 className="text-3xl font-bold text-gray-800 mb-2">🎮 Create Game</h2>
             <p className="text-gray-600">Generate a code for your friend to join</p>
@@ -248,14 +277,26 @@ const OnlineLobby: React.FC<OnlineLobbyProps> = ({ onGameStart, onBack }) => {
             </button>
           </div>
         </div>
+        <HelpPopup isOpen={showHelp} onClose={() => setShowHelp(false)} />
       </div>
     );
   }
 
   if (mode === 'join') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 flex items-center justify-center p-4">
-        <div className="bg-white/90 rounded-3xl p-8 shadow-2xl max-w-md w-full">
+      <div 
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{
+          backgroundImage: 'url(/backgrounds/battle-scene-2.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed'
+        }}
+      >
+        {/* Enhanced semi-transparent overlay for better readability */}
+        <div className="absolute inset-0 bg-black/60"></div>
+        <div className="bg-white/70 backdrop-blur-md rounded-3xl p-8 shadow-2xl max-w-md w-full relative z-10 border border-white/30" style={{ backgroundColor: 'rgba(255, 255, 255, 0.70)' }}>
           <div className="text-center mb-6">
             <h2 className="text-3xl font-bold text-gray-800 mb-2">🔗 Join Game</h2>
             <p className="text-gray-600">Enter your friend's game code</p>
@@ -304,14 +345,26 @@ const OnlineLobby: React.FC<OnlineLobbyProps> = ({ onGameStart, onBack }) => {
             </button>
           </div>
         </div>
+        <HelpPopup isOpen={showHelp} onClose={() => setShowHelp(false)} />
       </div>
     );
   }
 
   if (mode === 'waiting') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 flex items-center justify-center p-4">
-        <div className="bg-white/90 rounded-3xl p-8 shadow-2xl max-w-md w-full">
+      <div 
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{
+          backgroundImage: 'url(/backgrounds/battle-scene-3.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed'
+        }}
+      >
+        {/* Enhanced semi-transparent overlay for better readability */}
+        <div className="absolute inset-0 bg-black/60"></div>
+        <div className="bg-white/70 backdrop-blur-md rounded-3xl p-8 shadow-2xl max-w-md w-full relative z-10 border border-white/30" style={{ backgroundColor: 'rgba(255, 255, 255, 0.70)' }}>
           <div className="text-center mb-6">
             <h2 className="text-3xl font-bold text-gray-800 mb-2">🎮 Game Lobby</h2>
             <p className="text-gray-600">Waiting for players...</p>
@@ -412,6 +465,7 @@ const OnlineLobby: React.FC<OnlineLobbyProps> = ({ onGameStart, onBack }) => {
             ← Leave Lobby
           </button>
         </div>
+        <HelpPopup isOpen={showHelp} onClose={() => setShowHelp(false)} />
       </div>
     );
   }

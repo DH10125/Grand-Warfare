@@ -12,6 +12,7 @@ interface MultiplayerGameProps {
   socket: Socket;
   roomId: string;
   playerSlot: 'player1' | 'player2';
+  players: { player1?: any; player2?: any };
   onDisconnect: () => void;
 }
 
@@ -19,6 +20,7 @@ const MultiplayerGame: React.FC<MultiplayerGameProps> = ({
   socket,
   roomId,
   playerSlot,
+  players,
   onDisconnect,
 }) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -276,17 +278,8 @@ const MultiplayerGame: React.FC<MultiplayerGameProps> = ({
 
   return (
     <div className="relative">
-      {/* Connection status indicator */}
-      <div className="fixed top-4 right-4 z-40">
-        <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-          isConnected ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
-        }`}>
-          {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
-        </div>
-      </div>
-
       {/* Turn indicator for multiplayer */}
-      <div className="fixed top-16 right-4 z-40">
+      <div className="fixed top-4 right-4 z-40">
         <div className={`px-3 py-1 rounded-full text-sm font-medium ${
           isMyTurn() ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-800'
         }`}>
@@ -311,6 +304,10 @@ const MultiplayerGame: React.FC<MultiplayerGameProps> = ({
         playerSlot={playerSlot}
         isMultiplayer={true}
         isMyTurn={isMyTurn()}
+        playerNames={{
+          player1: players.player1?.name,
+          player2: players.player2?.name
+        }}
       />
     </div>
   );

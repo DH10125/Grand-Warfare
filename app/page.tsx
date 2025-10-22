@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Socket } from 'socket.io-client';
+import React, { useState, useEffect } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { GameMode } from '@/types/game';
 import GameModeSelect from '@/components/GameModeSelect';
 import OnlineLobby from '@/components/OnlineLobby';
@@ -15,6 +15,34 @@ export default function Home() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [roomId, setRoomId] = useState<string>('');
   const [playerSlot, setPlayerSlot] = useState<'player1' | 'player2'>('player1');
+  const [players, setPlayers] = useState<{ player1?: any; player2?: any }>({});
+
+  // Initialize socket connection when entering online mode
+  useEffect(() => {
+    if (appState === 'online-lobby' && !socket) {
+      const socketInstance = io({
+        path: '/api/socket',
+      });
+
+      socketInstance.on('connect', () => {
+        console.log('Connected to server from main app');
+        setSocket(socketInstance);
+      });
+
+      socketInstance.on('disconnect', () => {
+        console.log('Disconnected from server');
+        setSocket(null);
+      });
+    }
+
+    // Cleanup when leaving online modes
+    return () => {
+      if (appState === 'mode-select' && socket) {
+        socket.disconnect();
+        setSocket(null);
+      }
+    };
+  }, [appState]);
 
   const handleModeSelect = (mode: GameMode) => {
     if (mode === 'local') {
@@ -24,10 +52,11 @@ export default function Home() {
     }
   };
 
-  const handleOnlineGameStart = (socketInstance: Socket, gameRoomId: string, slot: 'player1' | 'player2') => {
+  const handleOnlineGameStart = (socketInstance: Socket, gameRoomId: string, slot: 'player1' | 'player2', playersData: { player1?: any; player2?: any }) => {
     setSocket(socketInstance);
     setRoomId(gameRoomId);
     setPlayerSlot(slot);
+    setPlayers(playersData);
     setAppState('multiplayer-game');
   };
 
@@ -38,6 +67,7 @@ export default function Home() {
       setSocket(null);
     }
     setRoomId('');
+    setPlayers({});
   };
 
   const handleDisconnect = () => {
@@ -51,6 +81,7 @@ export default function Home() {
   if (appState === 'online-lobby') {
     return (
       <OnlineLobby 
+        socket={socket}
         onGameStart={handleOnlineGameStart}
         onBack={handleBackToMenu}
       />
@@ -78,6 +109,7 @@ export default function Home() {
         socket={socket}
         roomId={roomId}
         playerSlot={playerSlot}
+        players={players}
         onDisconnect={handleDisconnect}
       />
     );

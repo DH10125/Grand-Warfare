@@ -21,6 +21,7 @@ interface GameProps {
   playerSlot?: 'player1' | 'player2';
   isMultiplayer?: boolean;
   isMyTurn?: boolean;
+  playerNames?: { player1?: string; player2?: string };
 }
 
 const Game: React.FC<GameProps> = ({
@@ -30,6 +31,7 @@ const Game: React.FC<GameProps> = ({
   playerSlot,
   isMultiplayer = false,
   isMyTurn = true,
+  playerNames,
 }) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [highlightedMoveHexes, setHighlightedMoveHexes] = useState<HexPosition[]>([]);
@@ -44,6 +46,29 @@ const Game: React.FC<GameProps> = ({
   const [hasShownWelcome, setHasShownWelcome] = useState<boolean>(false);
   const [selectedHexPosition, setSelectedHexPosition] = useState<HexPosition | null>(null);
   const [turnCount, setTurnCount] = useState<number>(0);
+
+  // Helper function to get player display name
+  const getPlayerName = (player: 'player1' | 'player2'): string => {
+    if (isMultiplayer && playerNames) {
+      const name = playerNames[player];
+      if (name) {
+        return player === 'player1' ? `${name} (Blue)` : `${name} (Red)`;
+      }
+    }
+    return player === 'player1' ? 'Player 1 (Blue)' : 'Player 2 (Red)';
+  };
+
+  // Helper function to get opponent player name
+  const getOpponentName = (currentPlayer: 'player1' | 'player2'): string => {
+    const opponent = currentPlayer === 'player1' ? 'player2' : 'player1';
+    if (isMultiplayer && playerNames) {
+      const name = playerNames[opponent];
+      if (name) {
+        return name;
+      }
+    }
+    return opponent === 'player1' ? 'Player 1' : 'Player 2';
+  };
   const [lastClickTime, setLastClickTime] = useState<number>(0);
   const [lastClickedCardId, setLastClickedCardId] = useState<string | null>(null);
 
@@ -107,8 +132,8 @@ const Game: React.FC<GameProps> = ({
     
     setGameState(initialState);
     
-    // Show welcome help popup on first load (only for local games)
-    if (!isMultiplayer) {
+    // Show welcome help popup on first load for all games
+    if (!hasShownWelcome) {
       setShowHelp(true);
       setHasShownWelcome(true);
     }
@@ -402,7 +427,8 @@ const Game: React.FC<GameProps> = ({
       updatedFortresses[enemyOwner].hitPoints -= unitHP;
       updatedCards = gameState.cards.filter(c => c.id !== gameState.selectedCard!.id);
       
-      spawnZoneMessage = `🏰 Your unit reached enemy spawn zone! Enemy fortress takes ${unitHP} damage! Unit disappears.`;
+      const opponentName = getOpponentName(gameState.selectedCard.owner);
+      spawnZoneMessage = `🏰 Your unit reached ${opponentName}'s spawn zone! ${opponentName}'s fortress takes ${unitHP} damage! Unit disappears.`;
     } else {
       // Normal movement
       updatedCards = gameState.cards.map(c =>
@@ -434,9 +460,9 @@ const Game: React.FC<GameProps> = ({
         
         newCards = [...newCards, rewardCard];
         
-        // Mark hex as collected
+        // Mark hex as collected and remove the reward
         updatedHexagons = updatedHexagons.map(h =>
-          hexEqual(h, targetHex) ? { ...h, isCollected: true } : h
+          hexEqual(h, targetHex) ? { ...h, isCollected: true, reward: undefined } : h
         );
         
         rewardMessage = `🎉 Collected: ${hexTile.reward.name}!`;
@@ -452,20 +478,27 @@ const Game: React.FC<GameProps> = ({
       } else {
         winner = updatedFortresses.player1.hitPoints > updatedFortresses.player2.hitPoints ? 'player1' : 'player2';
       }
+      // Set loser's fortress to 0 HP for visual consistency
+      const loser = winner === 'player1' ? 'player2' : 'player1';
+      updatedFortresses[loser].hitPoints = 0;
     } else if (updatedFortresses.player1.hitPoints <= 0) {
       winner = 'player2';
+      updatedFortresses.player1.hitPoints = 0; // Ensure loser's fortress is exactly 0
     } else if (updatedFortresses.player2.hitPoints <= 0) {
       winner = 'player1';
+      updatedFortresses.player2.hitPoints = 0; // Ensure loser's fortress is exactly 0
     }
     
-    updateGameState({
+    const newGameState = {
       ...gameState,
       hexagons: updatedHexagons,
       cards: newCards,
       fortresses: updatedFortresses,
       selectedCard: null,
       winner: winner as 'player1' | 'player2' | null,
-    });
+    };
+    
+    updateGameState(newGameState);
     setHighlightedMoveHexes([]);
     setHighlightedAttackHexes([]);
     setHighlightedSpawnHexes([]);
@@ -476,7 +509,10 @@ const Game: React.FC<GameProps> = ({
     const finalMessage = spawnZoneMessage || rewardMessage;
     if (finalMessage) {
       setNotification(finalMessage);
-      setTimeout(() => setNotification(''), 4000);
+      // Only set timeout if this isn't a victory notification
+      if (!newGameState.winner) {
+        setTimeout(() => setNotification(''), 4000);
+      }
     }
   };
 
@@ -516,7 +552,8 @@ const Game: React.FC<GameProps> = ({
           : c
         );
       
-      setNotification(`⚔️ Victory! Enemy defeated! Your unit advances and takes ${defenderHP} damage. Enemy fortress takes ${defenderHP} damage!`);
+      const opponentName = getOpponentName(gameState.selectedCard.owner);
+      setNotification(`⚔️ Victory! ${opponentName}'s unit defeated! Your unit advances and takes ${defenderHP} damage. ${opponentName}'s fortress takes ${defenderHP} damage!`);
       
     } else if (defenderHP > attackerHP) {
       // Defender wins - attacker is eliminated, defender advances to attacker's hex
@@ -534,7 +571,8 @@ const Game: React.FC<GameProps> = ({
           : c
         );
       
-      setNotification(`💔 Defeat! Your unit was eliminated! Enemy advances and takes ${attackerHP} damage. Your fortress takes ${attackerHP} damage!`);
+      const opponentName = getOpponentName(gameState.selectedCard.owner);
+      setNotification(`💔 Defeat! Your unit was eliminated! ${opponentName}'s unit advances and takes ${attackerHP} damage. Your fortress takes ${attackerHP} damage!`);
       
     } else {
       // Equal HP - both units are destroyed, defender's fortress takes damage
@@ -557,31 +595,40 @@ const Game: React.FC<GameProps> = ({
       } else {
         winner = updatedFortresses.player1.hitPoints > updatedFortresses.player2.hitPoints ? 'player1' : 'player2';
       }
+      // Set loser's fortress to 0 HP for visual consistency
+      const loser = winner === 'player1' ? 'player2' : 'player1';
+      updatedFortresses[loser].hitPoints = 0;
     } else if (updatedFortresses.player1.hitPoints <= 0) {
       winner = 'player2';
+      updatedFortresses.player1.hitPoints = 0; // Ensure loser's fortress is exactly 0
     } else if (updatedFortresses.player2.hitPoints <= 0) {
       winner = 'player1';
+      updatedFortresses.player2.hitPoints = 0; // Ensure loser's fortress is exactly 0
     }
     
-    // Show notification for 3 seconds
-    setTimeout(() => setNotification(''), 4000); // Longer duration for more text
+    // Show notification for 3 seconds (but not for victory notifications)
+    if (!winner) {
+      setTimeout(() => setNotification(''), 4000); // Longer duration for more text
+    }
     
     // Check for additional victory condition (no units and no cards)
     if (!winner) {
       winner = checkVictoryCondition(updatedCards);
       if (winner) {
-        const winnerName = winner === 'player1' ? 'Player 1 (Blue)' : 'Player 2 (Red)';
+        const winnerName = getPlayerName(winner);
         setNotification(`🎉 ${winnerName} wins! The opponent has no units on the board and no cards in hand.`);
       }
     }
     
-    setGameState({
+    const newGameState = {
       ...gameState,
       cards: updatedCards,
       fortresses: updatedFortresses,
       selectedCard: null,
       winner: winner as 'player1' | 'player2' | null,
-    });
+    };
+    
+    updateGameState(newGameState);
     setHighlightedMoveHexes([]);
     setHighlightedAttackHexes([]);
     setHighlightedSpawnHexes([]);
@@ -718,25 +765,35 @@ const Game: React.FC<GameProps> = ({
     // Check for victory condition after updating cards
     const winner = checkVictoryCondition(updatedCards);
     if (winner) {
-      const winnerName = winner === 'player1' ? 'Player 1 (Blue)' : 'Player 2 (Red)';
+      const winnerName = getPlayerName(winner);
       setNotification(`🎉 ${winnerName} wins! The opponent has no units on the board and no cards in hand.`);
       return; // Don't continue the turn if someone has won
     }
     
-    // Respawn rewards on empty hexes every 3 turns (to avoid flooding the board)
-    let updatedHexagons = gameState.hexagons;
-    let rewardsAdded = 0;
+    // Check if all question marks have been revealed and refill if needed
+    // Only check for refills at the end of complete rounds (every 2 turns)
+    let finalHexagons = gameState.hexagons;
+    let totalRewardsAdded = 0;
+    let refillNotification = false;
     
-    if (newTurnCount % 3 === 0) {
-      const respawnResult = respawnRewards(gameState.hexagons, updatedCards);
-      updatedHexagons = respawnResult.updatedHexagons;
-      rewardsAdded = respawnResult.rewardsAdded;
+    if (newTurnCount % 2 === 0) { // End of round (both players have played)
+      const refillResult = checkAndRefillBoard(gameState.hexagons, updatedCards);
+      finalHexagons = refillResult.hexagons;
+      totalRewardsAdded = refillResult.rewardsAdded;
+      refillNotification = refillResult.shouldNotify;
+      
+      // Also do normal respawn if no refill happened and it's time (every 3 rounds = 6 turns)
+      if (!refillResult.shouldNotify && newTurnCount % 6 === 0) {
+        const respawnResult = respawnRewards(finalHexagons, updatedCards);
+        finalHexagons = respawnResult.updatedHexagons;
+        totalRewardsAdded += respawnResult.rewardsAdded;
+      }
     }
     
     updateGameState({
       ...gameState,
       cards: updatedCards,
-      hexagons: updatedHexagons,
+      hexagons: finalHexagons,
       currentPlayer: nextPlayer,
       selectedCard: null,
     });
@@ -747,9 +804,12 @@ const Game: React.FC<GameProps> = ({
     setCardDetailView(null);
     setSelectedHexPosition(null);
     
-    // Show notification if rewards were added
-    if (rewardsAdded > 0) {
-      setNotification(`✨ ${rewardsAdded} new reward${rewardsAdded > 1 ? 's' : ''} appeared on the battlefield!`);
+    // Show appropriate notification
+    if (refillNotification) {
+      setNotification(`🌟 All mysteries revealed! The battlefield has been replenished with ${totalRewardsAdded} new rewards!`);
+      setTimeout(() => setNotification(''), 4000);
+    } else if (totalRewardsAdded > 0) {
+      setNotification(`✨ ${totalRewardsAdded} new reward${totalRewardsAdded > 1 ? 's' : ''} appeared on the battlefield!`);
       setTimeout(() => setNotification(''), 3000);
     }
   };
@@ -801,6 +861,64 @@ const Game: React.FC<GameProps> = ({
     }
     
     return { updatedHexagons: hexagons, rewardsAdded: 0 };
+  };
+
+  // Function to refill all empty hexes when no question marks remain
+  const refillAllRewards = (hexagons: HexTile[], cards: CardType[]): { updatedHexagons: HexTile[], rewardsAdded: number } => {
+    // Find all eligible hexes: revealed, no current reward OR collected, not occupied, not spawn edges
+    const eligibleHexes = hexagons.filter(hex => {
+      const isOccupied = cards.some(c => c.position && hexEqual(c.position, hex));
+      const isSpawnEdge = gameState!.leftSpawnEdge.some(spawn => hexEqual(spawn, hex)) ||
+                         gameState!.rightSpawnEdge.some(spawn => hexEqual(spawn, hex));
+      
+      // Include revealed hexes that either have no reward or are collected (green checkmarks)
+      return hex.isRevealed && 
+             (!hex.reward || hex.isCollected) && 
+             !isOccupied && 
+             !isSpawnEdge;
+    });
+    
+    // Add rewards to ALL eligible hexes and reset them to unrevealed (question marks)
+    const updatedHexagons = hexagons.map(hex => {
+      const isEligible = eligibleHexes.some(eligible => hexEqual(eligible, hex));
+      if (isEligible) {
+        // Randomly select a reward card template
+        const randomCardIndex = Math.floor(Math.random() * CARD_TEMPLATES.length);
+        const newReward = CARD_TEMPLATES[randomCardIndex];
+        
+        return {
+          ...hex,
+          reward: newReward,
+          isRevealed: false, // Make it a question mark again
+          isCollected: false,
+        };
+      }
+      return hex;
+    });
+    
+    return { updatedHexagons, rewardsAdded: eligibleHexes.length };
+  };
+
+  // Function to check if refill is needed and perform it
+  const checkAndRefillBoard = (currentHexagons: HexTile[], currentCards: CardType[]): { hexagons: HexTile[], shouldNotify: boolean, rewardsAdded: number } => {
+    // Check if there are any unrevealed hexes (question marks)
+    const unrevealedHexes = currentHexagons.filter(hex => {
+      const isSpawnEdge = gameState!.leftSpawnEdge.some(spawn => hexEqual(spawn, hex)) ||
+                         gameState!.rightSpawnEdge.some(spawn => hexEqual(spawn, hex));
+      return !hex.isRevealed && !isSpawnEdge;
+    });
+    
+    if (unrevealedHexes.length === 0) {
+      // No more question marks! Refill all empty hexes
+      const refillResult = refillAllRewards(currentHexagons, currentCards);
+      return {
+        hexagons: refillResult.updatedHexagons,
+        shouldNotify: refillResult.rewardsAdded > 0,
+        rewardsAdded: refillResult.rewardsAdded
+      };
+    }
+    
+    return { hexagons: currentHexagons, shouldNotify: false, rewardsAdded: 0 };
   };
 
   const handleHexClick = (hex: HexPosition) => {
@@ -857,7 +975,14 @@ const Game: React.FC<GameProps> = ({
 
   return (
     <div 
-      className="min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 p-2 sm:p-4"
+      className="min-h-screen p-2 sm:p-4"
+      style={{
+        backgroundImage: 'url(/backgrounds/battle-scene-3.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed'
+      }}
       onMouseMove={(e) => {
         setMousePosition({ x: e.clientX, y: e.clientY });
       }}
@@ -887,7 +1012,7 @@ const Game: React.FC<GameProps> = ({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 sm:p-8 rounded-lg text-center max-w-sm w-full">
             <h2 className="text-2xl sm:text-4xl font-bold mb-4">
-              {gameState.winner === 'player1' ? 'Player 1' : 'Player 2'} Wins!
+              {getPlayerName(gameState.winner)} Wins!
             </h2>
             <button
               onClick={() => window.location.reload()}
@@ -900,19 +1025,9 @@ const Game: React.FC<GameProps> = ({
       )}
       
       {/* Top Bar */}
-      <div className="bg-white/90 rounded-lg p-3 sm:p-4 mb-2 sm:mb-4 shadow-xl">
+      <div className="bg-white/95 backdrop-blur-sm rounded-lg p-3 sm:p-4 mb-2 sm:mb-4 shadow-xl border border-white/20">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0 mb-2">
           <div className="flex items-center gap-2 sm:gap-4">
-            <div className="text-lg sm:text-2xl font-bold text-center">
-              Current Turn: <span className={gameState.currentPlayer === 'player1' ? 'text-blue-600' : 'text-red-600'}>
-                {gameState.currentPlayer === 'player1' ? 'Player 1' : 'Player 2'}
-              </span>
-              {isMultiplayer && (
-                <span className="text-sm font-normal ml-2">
-                  {playerSlot === gameState.currentPlayer ? '(You)' : '(Opponent)'}
-                </span>
-              )}
-            </div>
             {/* Turn Counter */}
             <div className="text-sm sm:text-base bg-purple-100 px-2 sm:px-3 py-1 rounded-lg border-2 border-purple-300">
               <span className="font-bold text-purple-700">Turn {turnCount + 1}</span>
@@ -957,6 +1072,7 @@ const Game: React.FC<GameProps> = ({
             side="left"
             isAttackable={canAttackFortress('player1')}
             onClick={() => canAttackFortress('player1') && attackFortress('player1')}
+            playerName={isMultiplayer && playerNames?.player1 ? playerNames.player1 : undefined}
           />
         </div>
         <div className="flex-1">
@@ -965,6 +1081,7 @@ const Game: React.FC<GameProps> = ({
             side="right"
             isAttackable={canAttackFortress('player2')}
             onClick={() => canAttackFortress('player2') && attackFortress('player2')}
+            playerName={isMultiplayer && playerNames?.player2 ? playerNames.player2 : undefined}
           />
         </div>
       </div>
@@ -1239,8 +1356,10 @@ const Game: React.FC<GameProps> = ({
       {/* Player Hands - Side by side horizontally */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4 mb-2 sm:mb-4">
         {/* Player 1 Hand */}
-        <div className="bg-gradient-to-br from-blue-500/40 to-blue-700/40 rounded-xl p-3 sm:p-4 shadow-xl border-2 sm:border-4 border-blue-400">
-          <h3 className="text-white font-bold text-lg sm:text-xl mb-2 sm:mb-3 text-center">🔵 Player 1 Hand</h3>
+        <div className="bg-gradient-to-br from-blue-500/50 to-blue-700/50 backdrop-blur-sm rounded-xl p-3 sm:p-4 shadow-xl border-2 sm:border-4 border-blue-400 border-opacity-60">
+          <h3 className="text-white font-bold text-lg sm:text-xl mb-2 sm:mb-3 text-center">
+            🔵 {isMultiplayer && playerNames?.player1 ? `${playerNames.player1} Hand` : 'Player 1 Hand'}
+          </h3>
           <div className="flex gap-2 sm:gap-4 flex-wrap justify-center">
             {player1Hand.map(card => (
               <div key={card.id} className="touch-manipulation">
@@ -1259,8 +1378,10 @@ const Game: React.FC<GameProps> = ({
         </div>
 
         {/* Player 2 Hand */}
-        <div className="bg-gradient-to-br from-red-500/40 to-red-700/40 rounded-xl p-3 sm:p-4 shadow-xl border-2 sm:border-4 border-red-400">
-          <h3 className="text-white font-bold text-lg sm:text-xl mb-2 sm:mb-3 text-center">🔴 Player 2 Hand</h3>
+        <div className="bg-gradient-to-br from-red-500/50 to-red-700/50 backdrop-blur-sm rounded-xl p-3 sm:p-4 shadow-xl border-2 sm:border-4 border-red-400 border-opacity-60">
+          <h3 className="text-white font-bold text-lg sm:text-xl mb-2 sm:mb-3 text-center">
+            🔴 {isMultiplayer && playerNames?.player2 ? `${playerNames.player2} Hand` : 'Player 2 Hand'}
+          </h3>
           <div className="flex gap-2 sm:gap-4 flex-wrap justify-center">
             {player2Hand.map(card => (
               <div key={card.id} className="touch-manipulation">
