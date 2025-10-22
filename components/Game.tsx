@@ -14,7 +14,23 @@ import CardDetailPopup from './CardDetailPopup';
 const CORRIDOR_LENGTH = 10;
 const CORRIDOR_WIDTH = 4;
 
-const Game: React.FC = () => {
+interface GameProps {
+  initialGameState?: GameState | null;
+  onGameStateChange?: (newState: GameState) => void;
+  onPlayerAction?: (actionType: string, payload: any) => boolean;
+  playerSlot?: 'player1' | 'player2';
+  isMultiplayer?: boolean;
+  isMyTurn?: boolean;
+}
+
+const Game: React.FC<GameProps> = ({
+  initialGameState = null,
+  onGameStateChange,
+  onPlayerAction,
+  playerSlot,
+  isMultiplayer = false,
+  isMyTurn = true,
+}) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [highlightedMoveHexes, setHighlightedMoveHexes] = useState<HexPosition[]>([]);
   const [highlightedAttackHexes, setHighlightedAttackHexes] = useState<HexPosition[]>([]);
@@ -50,6 +66,13 @@ const Game: React.FC = () => {
 
   // Initialize game
   useEffect(() => {
+    // If we have an initial game state (multiplayer), use it
+    if (initialGameState) {
+      setGameState(initialGameState);
+      return;
+    }
+    
+    // Otherwise, initialize a new local game
     const hexagons = generateCorridorGridWithRewards(CORRIDOR_LENGTH, CORRIDOR_WIDTH);
     const { leftEdge, rightEdge } = getSpawnEdges(CORRIDOR_LENGTH, CORRIDOR_WIDTH);
     
@@ -79,14 +102,44 @@ const Game: React.FC = () => {
       corridorWidth: CORRIDOR_WIDTH,
       leftSpawnEdge: leftEdge,
       rightSpawnEdge: rightEdge,
+      gameMode: isMultiplayer ? 'online' : 'local',
     };
     
     setGameState(initialState);
     
-    // Show welcome help popup on first load
-    setShowHelp(true);
-    setHasShownWelcome(true);
-  }, []);
+    // Show welcome help popup on first load (only for local games)
+    if (!isMultiplayer) {
+      setShowHelp(true);
+      setHasShownWelcome(true);
+    }
+  }, [initialGameState, isMultiplayer]);
+
+  // Helper function to update game state and sync with multiplayer if needed
+  const updateGameState = (newState: GameState) => {
+    setGameState(newState);
+    if (onGameStateChange) {
+      onGameStateChange(newState);
+    }
+  };
+
+  // Helper function to send multiplayer action
+  const sendMultiplayerAction = (actionType: string, payload: any): boolean => {
+    if (onPlayerAction) {
+      return onPlayerAction(actionType, payload);
+    }
+    return true; // Allow action for local games
+  };
+
+  // Check if current player can perform actions
+  const canPerformAction = (): boolean => {
+    if (!gameState) return false;
+    if (isMultiplayer) {
+      // In multiplayer, check if it's our turn and we can perform actions
+      return isMyTurn && gameState.currentPlayer === playerSlot;
+    }
+    // In local games, always allow actions
+    return true;
+  };
 
   // Auto-switch turns when no moves are available
   useEffect(() => {
@@ -105,7 +158,7 @@ const Game: React.FC = () => {
 
 
   const placeCard = (card: CardType, position: HexPosition) => {
-    if (!gameState) return;
+    if (!gameState || !canPerformAction()) return;
     
     // Check if position is valid and not occupied
     const isValidHex = gameState.hexagons.some(hex => hexEqual(hex, position));
@@ -120,6 +173,9 @@ const Game: React.FC = () => {
     // Player 1 can only place on left edge, Player 2 on right edge
     if (card.owner === 'player1' && !isLeftEdge) return;
     if (card.owner === 'player2' && !isRightEdge) return;
+    
+    // Send multiplayer action first
+    if (!sendMultiplayerAction('PLACE_CARD', { cardId: card.id, position })) return;
     
     const updatedCards = gameState.cards.map(c => 
       c.id === card.id ? { ...c, position, ap: 0 } : c // Units cannot act on turn they're placed
@@ -136,7 +192,7 @@ const Game: React.FC = () => {
       nextSelectedCard = currentPlayerHandCards[0];
     }
     
-    setGameState({
+    updateGameState({
       ...gameState,
       cards: updatedCards,
       selectedCard: nextSelectedCard,
@@ -160,15 +216,24 @@ const Game: React.FC = () => {
   };
 
   const selectCard = (card: CardType) => {
-    if (!gameState || card.owner !== gameState.currentPlayer) return;
+    if (!gameState) return;
+    
+    // In multiplayer, only allow selecting own cards on own turn
+    if (isMultiplayer && (!canPerformAction() || card.owner !== playerSlot)) return;
+    
+    // In local games, only allow selecting current player's cards
+    if (!isMultiplayer && card.owner !== gameState.currentPlayer) return;
     
     // If card is in hand (no position), automatically prepare it for placement
     if (!card.position) {
       // Close any open popup
       setCardDetailPopup(null);
       
+      // Send multiplayer action
+      sendMultiplayerAction('SELECT_CARD', { cardId: card.id });
+      
       // Select the card for placement
-      setGameState({
+      updateGameState({
         ...gameState,
         selectedCard: card,
       });
@@ -189,7 +254,10 @@ const Game: React.FC = () => {
     
     const newSelectedCard = card.id === gameState.selectedCard?.id ? null : card;
     
-    setGameState({
+    // Send multiplayer action
+    sendMultiplayerAction('SELECT_CARD', { cardId: newSelectedCard?.id || null });
+    
+    updateGameState({
       ...gameState,
       selectedCard: newSelectedCard,
     });
@@ -304,8 +372,14 @@ const Game: React.FC = () => {
   };
 
   const executeMove = (targetHex: HexPosition) => {
-    if (!gameState?.selectedCard) return;
+    if (!gameState?.selectedCard || !canPerformAction()) return;
     if (gameState.selectedCard.ap <= 0) return; // Check AP
+    
+    // Send multiplayer action first
+    if (!sendMultiplayerAction('MOVE_UNIT', { 
+      cardId: gameState.selectedCard.id, 
+      targetPosition: targetHex 
+    })) return;
     
     // Find the hex tile
     const hexTile = gameState.hexagons.find(h => hexEqual(h, targetHex));
@@ -384,7 +458,7 @@ const Game: React.FC = () => {
       winner = 'player1';
     }
     
-    setGameState({
+    updateGameState({
       ...gameState,
       hexagons: updatedHexagons,
       cards: newCards,
@@ -628,7 +702,10 @@ const Game: React.FC = () => {
   };
 
   const endTurn = () => {
-    if (!gameState) return;
+    if (!gameState || !canPerformAction()) return;
+    
+    // Send multiplayer action first
+    if (!sendMultiplayerAction('END_TURN', {})) return;
     
     const nextPlayer = gameState.currentPlayer === 'player1' ? 'player2' : 'player1';
     const newTurnCount = turnCount + 1;
@@ -656,7 +733,7 @@ const Game: React.FC = () => {
       rewardsAdded = respawnResult.rewardsAdded;
     }
     
-    setGameState({
+    updateGameState({
       ...gameState,
       cards: updatedCards,
       hexagons: updatedHexagons,
@@ -830,6 +907,11 @@ const Game: React.FC = () => {
               Current Turn: <span className={gameState.currentPlayer === 'player1' ? 'text-blue-600' : 'text-red-600'}>
                 {gameState.currentPlayer === 'player1' ? 'Player 1' : 'Player 2'}
               </span>
+              {isMultiplayer && (
+                <span className="text-sm font-normal ml-2">
+                  {playerSlot === gameState.currentPlayer ? '(You)' : '(Opponent)'}
+                </span>
+              )}
             </div>
             {/* Turn Counter */}
             <div className="text-sm sm:text-base bg-purple-100 px-2 sm:px-3 py-1 rounded-lg border-2 border-purple-300">
@@ -849,7 +931,12 @@ const Game: React.FC = () => {
           </div>
           <button
             onClick={endTurn}
-            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl shadow-lg transform hover:scale-105 transition-all touch-manipulation w-full sm:w-auto"
+            disabled={!canPerformAction()}
+            className={`px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-bold text-lg sm:text-xl shadow-lg transform transition-all touch-manipulation w-full sm:w-auto ${
+              canPerformAction() 
+                ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 hover:scale-105 text-white'
+                : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+            }`}
           >
             End Turn ➡️
           </button>

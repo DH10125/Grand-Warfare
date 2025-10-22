@@ -43,6 +43,42 @@ export interface GameState {
   corridorWidth: number;  // Number of rows (r-axis)
   leftSpawnEdge: HexPosition[];
   rightSpawnEdge: HexPosition[];
+  // Multiplayer specific fields
+  gameMode?: 'local' | 'online';
+  gameCode?: string;
+  roomId?: string;
+  players?: {
+    player1?: PlayerInfo;
+    player2?: PlayerInfo;
+  };
+}
+
+export interface PlayerInfo {
+  id: string;
+  name?: string;
+  isConnected: boolean;
+  isReady: boolean;
+}
+
+export interface MultiplayerGameRoom {
+  id: string;
+  gameCode: string;
+  gameState: GameState;
+  players: {
+    player1?: PlayerInfo;
+    player2?: PlayerInfo;
+  };
+  createdAt: Date;
+  isActive: boolean;
+}
+
+export type GameMode = 'local' | 'online';
+
+export interface GameAction {
+  type: 'PLACE_CARD' | 'MOVE_UNIT' | 'ATTACK_UNIT' | 'ATTACK_FORTRESS' | 'END_TURN' | 'SELECT_CARD';
+  payload: any;
+  playerId: string;
+  timestamp: number;
 }
 
 export type CardTemplate = Omit<Card, 'id' | 'owner' | 'position' | 'ap'>;
