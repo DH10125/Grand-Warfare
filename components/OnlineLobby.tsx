@@ -39,7 +39,7 @@ const OnlineLobby: React.FC<OnlineLobbyProps> = ({ onGameStart, onBack }) => {
 
   useEffect(() => {
     // Initialize socket connection
-    const socketInstance = io(process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000', {
+    const socketInstance = io({
       path: '/api/socket',
     });
 
