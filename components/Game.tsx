@@ -837,104 +837,119 @@ const Game: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Game Area - Responsive Layout */}
-      <div className="flex flex-col lg:flex-row gap-2 sm:gap-4 mb-2 sm:mb-4">{/* Left Side - Player 1 Card Detail or Fortress - Mobile: Top */}
-        <div className="lg:flex-shrink-0 lg:w-64 order-2 lg:order-1">
-          {cardDetailView && cardDetailView.owner === 'player1' ? (
-            <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl border-4 sm:border-8 border-amber-600 overflow-hidden bg-opacity-95 w-full">
-              {/* Card Frame - Top Ornamental Border */}
-              <div className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 h-2 sm:h-4"></div>
-              
-              {/* Card Header */}
-              <div className="bg-gradient-to-r from-amber-700 to-amber-800 px-2 sm:px-4 py-2 sm:py-3 border-b-2 sm:border-b-4 border-amber-900">
-                <h2 className="text-lg sm:text-2xl font-bold text-center text-white drop-shadow-lg">
-                  {cardDetailView.name}
-                </h2>
-              </div>
-
-              {/* Card Image Section */}
-              <div className="bg-white p-4 flex items-center justify-center border-b-4 border-amber-600">
-                <div className="relative w-48 h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl border-4 border-amber-400 shadow-inner flex items-center justify-center overflow-hidden">
-                  <Image 
-                    src={cardDetailView.imageUrl} 
-                    alt={cardDetailView.name}
-                    width={180}
-                    height={180}
-                    className="object-contain"
-                  />
-                </div>
-              </div>
-
-              {/* Card Stats Section */}
-              <div className="px-4 py-3 bg-amber-50">
-                <h3 className="text-lg font-bold text-amber-900 mb-2 text-center border-b-2 border-amber-400 pb-1">
-                  ⚔️ Unit Statistics
-                </h3>
-                
-                <div className="space-y-2">
-                  {/* HP */}
-                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-red-300">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">❤️</span>
-                      <span className="font-bold text-gray-700 text-sm">HP:</span>
-                    </div>
-                    <span className="text-lg font-bold text-red-600">
-                      {cardDetailView.hitPoints}/{cardDetailView.maxHitPoints}
-                    </span>
-                  </div>
-
-                  {/* Speed */}
-                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-blue-300">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">🏃</span>
-                      <span className="font-bold text-gray-700 text-sm">Speed:</span>
-                    </div>
-                    <span className="text-lg font-bold text-blue-600">
-                      {cardDetailView.speed}
-                    </span>
-                  </div>
-
-                  {/* Range */}
-                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-purple-300">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">🎯</span>
-                      <span className="font-bold text-gray-700 text-sm">Range:</span>
-                    </div>
-                    <span className="text-lg font-bold text-purple-600">
-                      {cardDetailView.range}
-                    </span>
-                  </div>
-
-                  {/* Action Points (if on board) */}
-                  {cardDetailView.position && (
-                    <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-green-300">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">⚡</span>
-                        <span className="font-bold text-gray-700 text-sm">AP:</span>
-                      </div>
-                      <span className={`text-lg font-bold ${cardDetailView.ap > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                        {cardDetailView.ap > 0 ? '✓ Ready' : '✗ Used'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Card Frame - Bottom Ornamental Border */}
-              <div className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 h-4"></div>
-            </div>
-          ) : (
-            <Fortress 
-              fortress={gameState.fortresses.player1} 
-              side="left"
-              isAttackable={canAttackFortress('player1')}
-              onClick={() => canAttackFortress('player1') && attackFortress('player1')}
-            />
-          )}
+      {/* Fortress Section - Both fortresses side by side at top */}
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-2 sm:mb-4">
+        <div className="flex-1">
+          <Fortress 
+            fortress={gameState.fortresses.player1} 
+            side="left"
+            isAttackable={canAttackFortress('player1')}
+            onClick={() => canAttackFortress('player1') && attackFortress('player1')}
+          />
         </div>
+        <div className="flex-1">
+          <Fortress 
+            fortress={gameState.fortresses.player2} 
+            side="right"
+            isAttackable={canAttackFortress('player2')}
+            onClick={() => canAttackFortress('player2') && attackFortress('player2')}
+          />
+        </div>
+      </div>
 
-        {/* Game Board - Mobile: Takes full width, Desktop: Center */}
-        <div className="flex-1 bg-white/10 rounded-lg p-2 sm:p-4 flex items-center justify-center min-h-[300px] sm:min-h-[500px] relative order-1 lg:order-2">
+      {/* Card Detail Section - Full width when shown */}
+      {cardDetailView && (
+        <div className="mb-2 sm:mb-4">
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl border-4 sm:border-8 border-amber-600 overflow-hidden bg-opacity-95 w-full">
+            {/* Card Frame - Top Ornamental Border */}
+            <div className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 h-2 sm:h-4"></div>
+            
+            {/* Card Header */}
+            <div className="bg-gradient-to-r from-amber-700 to-amber-800 px-2 sm:px-4 py-2 sm:py-3 border-b-2 sm:border-b-4 border-amber-900">
+              <h2 className="text-lg sm:text-2xl font-bold text-center text-white drop-shadow-lg">
+                {cardDetailView.name}
+              </h2>
+            </div>
+
+            {/* Card Image Section */}
+            <div className="bg-white p-4 flex items-center justify-center border-b-4 border-amber-600">
+              <div className="relative w-48 h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl border-4 border-amber-400 shadow-inner flex items-center justify-center overflow-hidden">
+                <Image 
+                  src={cardDetailView.imageUrl} 
+                  alt={cardDetailView.name}
+                  width={180}
+                  height={180}
+                  className="object-contain"
+                />
+              </div>
+            </div>
+
+            {/* Card Stats Section */}
+            <div className="px-4 py-3 bg-amber-50">
+              <h3 className="text-lg font-bold text-amber-900 mb-2 text-center border-b-2 border-amber-400 pb-1">
+                ⚔️ Unit Statistics
+              </h3>
+              
+              <div className="space-y-2">
+                {/* HP */}
+                <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-red-300">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">❤️</span>
+                    <span className="font-bold text-gray-700 text-sm">HP:</span>
+                  </div>
+                  <span className="text-lg font-bold text-red-600">
+                    {cardDetailView.hitPoints}/{cardDetailView.maxHitPoints}
+                  </span>
+                </div>
+
+                {/* Speed */}
+                <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-blue-300">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🏃</span>
+                    <span className="font-bold text-gray-700 text-sm">Speed:</span>
+                  </div>
+                  <span className="text-lg font-bold text-blue-600">
+                    {cardDetailView.speed}
+                  </span>
+                </div>
+
+                {/* Range */}
+                <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-purple-300">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🎯</span>
+                    <span className="font-bold text-gray-700 text-sm">Range:</span>
+                  </div>
+                  <span className="text-lg font-bold text-purple-600">
+                    {cardDetailView.range}
+                  </span>
+                </div>
+
+                {/* Action Points (if on board) */}
+                {cardDetailView.position && (
+                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-green-300">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">⚡</span>
+                      <span className="font-bold text-gray-700 text-sm">AP:</span>
+                    </div>
+                    <span className={`text-lg font-bold ${cardDetailView.ap > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                      {cardDetailView.ap > 0 ? '✓ Ready' : '✗ Used'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Card Frame - Bottom Ornamental Border */}
+            <div className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 h-4"></div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Game Area */}
+      <div className="flex flex-col gap-2 sm:gap-4 mb-2 sm:mb-4">
+
+        {/* Game Board - Full Width */}
+        <div className="w-full bg-white/10 rounded-lg p-2 sm:p-4 flex items-center justify-center min-h-[300px] sm:min-h-[500px] relative">
           <div className="w-full max-w-full overflow-auto">
             <svg
               width={width}
@@ -1107,105 +1122,10 @@ const Game: React.FC = () => {
           </svg>
           </div>
         </div>
-
-        {/* Right Side - Player 2 Card Detail or Fortress - Mobile: Bottom */}
-        <div className="lg:flex-shrink-0 lg:w-64 order-3">
-          {cardDetailView && cardDetailView.owner === 'player2' ? (
-            <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-3xl shadow-2xl border-8 border-amber-600 overflow-hidden bg-opacity-95">
-              {/* Card Frame - Top Ornamental Border */}
-              <div className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 h-4"></div>
-              
-              {/* Card Header */}
-              <div className="bg-gradient-to-r from-amber-700 to-amber-800 px-4 py-3 border-b-4 border-amber-900">
-                <h2 className="text-2xl font-bold text-center text-white drop-shadow-lg">
-                  {cardDetailView.name}
-                </h2>
-              </div>
-
-              {/* Card Image Section */}
-              <div className="bg-white p-4 flex items-center justify-center border-b-4 border-amber-600">
-                <div className="relative w-48 h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl border-4 border-amber-400 shadow-inner flex items-center justify-center overflow-hidden">
-                  <Image 
-                    src={cardDetailView.imageUrl} 
-                    alt={cardDetailView.name}
-                    width={180}
-                    height={180}
-                    className="object-contain"
-                  />
-                </div>
-              </div>
-
-              {/* Card Stats Section */}
-              <div className="px-4 py-3 bg-amber-50">
-                <h3 className="text-lg font-bold text-amber-900 mb-2 text-center border-b-2 border-amber-400 pb-1">
-                  ⚔️ Unit Statistics
-                </h3>
-                
-                <div className="space-y-2">
-                  {/* HP */}
-                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-red-300">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">❤️</span>
-                      <span className="font-bold text-gray-700 text-sm">HP:</span>
-                    </div>
-                    <span className="text-lg font-bold text-red-600">
-                      {cardDetailView.hitPoints}/{cardDetailView.maxHitPoints}
-                    </span>
-                  </div>
-
-                  {/* Speed */}
-                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-blue-300">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">🏃</span>
-                      <span className="font-bold text-gray-700 text-sm">Speed:</span>
-                    </div>
-                    <span className="text-lg font-bold text-blue-600">
-                      {cardDetailView.speed}
-                    </span>
-                  </div>
-
-                  {/* Range */}
-                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-purple-300">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">🎯</span>
-                      <span className="font-bold text-gray-700 text-sm">Range:</span>
-                    </div>
-                    <span className="text-lg font-bold text-purple-600">
-                      {cardDetailView.range}
-                    </span>
-                  </div>
-
-                  {/* Action Points (if on board) */}
-                  {cardDetailView.position && (
-                    <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow border-2 border-green-300">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">⚡</span>
-                        <span className="font-bold text-gray-700 text-sm">AP:</span>
-                      </div>
-                      <span className={`text-lg font-bold ${cardDetailView.ap > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                        {cardDetailView.ap > 0 ? '✓ Ready' : '✗ Used'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Card Frame - Bottom Ornamental Border */}
-              <div className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 h-4"></div>
-            </div>
-          ) : (
-            <Fortress 
-              fortress={gameState.fortresses.player2} 
-              side="right"
-              isAttackable={canAttackFortress('player2')}
-              onClick={() => canAttackFortress('player2') && attackFortress('player2')}
-            />
-          )}
-        </div>
       </div>
 
-      {/* Player Hands - Mobile: Stacked, Desktop: Side by side */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-2 sm:mb-4">
+      {/* Player Hands - Side by side horizontally */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4 mb-2 sm:mb-4">
         {/* Player 1 Hand */}
         <div className="bg-gradient-to-br from-blue-500/40 to-blue-700/40 rounded-xl p-3 sm:p-4 shadow-xl border-2 sm:border-4 border-blue-400">
           <h3 className="text-white font-bold text-lg sm:text-xl mb-2 sm:mb-3 text-center">🔵 Player 1 Hand</h3>
