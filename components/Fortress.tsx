@@ -32,20 +32,21 @@ const Fortress: React.FC<FortressProps> = ({ fortress, side, isAttackable = fals
   
   return (
     <div 
-      className={`flex flex-col items-center justify-center p-4 min-w-[200px] ${
-        isAttackable ? 'cursor-pointer' : ''
-      }`}
+      className={`flex-1 max-w-[480px] flex flex-col items-center justify-center p-4 rounded-lg ${isAttackable ? 'cursor-pointer' : ''}`}
       onClick={onClick}
+      style={{ 
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        opacity: 1,
+        backdropFilter: 'none'
+      }}
     >
       {/* Player Label - Moved to top */}
-      <div className="mb-2 text-lg font-bold text-white">
+      <div className="mb-2 text-lg font-bold text-gray-800">
         {playerName || (fortress.owner === 'player1' ? 'Player 1' : 'Player 2')}
       </div>
       
       {/* Fortress Visual */}
-      <div className={`relative w-40 h-56 flex items-center justify-center ${
-        isAttackable ? 'animate-pulse border-4 border-red-500 rounded-lg' : ''
-      }`}>
+      <div className={`relative w-40 h-56 flex items-center justify-center ${isAttackable ? 'animate-pulse border-4 border-red-500 rounded-lg' : ''}`}>
         {/* Fortress Image */}
         <div className="w-32 h-40 relative">
           <Image
@@ -59,8 +60,8 @@ const Fortress: React.FC<FortressProps> = ({ fortress, side, isAttackable = fals
       </div>
       
       {/* HP Bar - Below fortress */}
-      <div className="mt-2 w-40">
-        <div className="bg-gray-300 h-6 rounded-full overflow-hidden border-2 border-gray-600">
+      <div className="mt-2 w-full max-w-[160px]">
+        <div className="bg-gray-200 h-6 rounded-full overflow-hidden border-2 border-gray-300">
           <div 
             className={`h-full transition-all duration-300 ${
               hpPercentage > 50 ? 'bg-green-500' : hpPercentage > 25 ? 'bg-yellow-500' : 'bg-red-500'
@@ -68,7 +69,7 @@ const Fortress: React.FC<FortressProps> = ({ fortress, side, isAttackable = fals
             style={{ width: `${Math.max(0, hpPercentage)}%` }}
           ></div>
         </div>
-        <div className="text-center font-bold text-sm mt-1 text-white">
+        <div className="text-center font-bold text-sm mt-1 text-gray-800">
           {Math.max(0, fortress.hitPoints)} / {fortress.maxHitPoints} HP
         </div>
       </div>

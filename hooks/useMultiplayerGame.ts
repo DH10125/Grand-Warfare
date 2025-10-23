@@ -34,6 +34,12 @@ export const useMultiplayerGame = ({
 
     const handleGameStateUpdate = (newGameState: GameState) => {
       console.log('Received game state update:', newGameState);
+      
+      // DIAGNOSTIC LOG - Remove after investigation  
+      if (newGameState.winner) {
+        console.log(`🔔 SOCKET VICTORY RECEIVED: Winner=${newGameState.winner}, PlayerSlot=${playerSlot}`);
+      }
+      
       setGameState(newGameState);
       if (onGameStateUpdate) {
         onGameStateUpdate(newGameState);

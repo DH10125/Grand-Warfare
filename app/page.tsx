@@ -7,11 +7,12 @@ import GameModeSelect from '@/components/GameModeSelect';
 import OnlineLobby from '@/components/OnlineLobby';
 import Game from '@/components/Game';
 import MultiplayerGame from '@/components/MultiplayerGame';
+import SplashScreen from '@/components/SplashScreen';
 
-type AppState = 'mode-select' | 'online-lobby' | 'local-game' | 'multiplayer-game';
+type AppState = 'splash' | 'mode-select' | 'online-lobby' | 'local-game' | 'multiplayer-game';
 
 export default function Home() {
-  const [appState, setAppState] = useState<AppState>('mode-select');
+  const [appState, setAppState] = useState<AppState>('splash');
   const [socket, setSocket] = useState<Socket | null>(null);
   const [roomId, setRoomId] = useState<string>('');
   const [playerSlot, setPlayerSlot] = useState<'player1' | 'player2'>('player1');
@@ -44,6 +45,10 @@ export default function Home() {
     };
   }, [appState]);
 
+  const handleSplashComplete = () => {
+    setAppState('mode-select');
+  };
+
   const handleModeSelect = (mode: GameMode) => {
     if (mode === 'local') {
       setAppState('local-game');
@@ -74,6 +79,10 @@ export default function Home() {
     setAppState('online-lobby');
   };
 
+  if (appState === 'splash') {
+    return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+
   if (appState === 'mode-select') {
     return <GameModeSelect onModeSelect={handleModeSelect} />;
   }
@@ -98,7 +107,7 @@ export default function Home() {
         >
           ← Back to Menu
         </button>
-        <Game />
+        <Game onReturnToMenu={handleBackToMenu} />
       </div>
     );
   }
@@ -111,6 +120,7 @@ export default function Home() {
         playerSlot={playerSlot}
         players={players}
         onDisconnect={handleDisconnect}
+        onReturnToMenu={handleBackToMenu}
       />
     );
   }

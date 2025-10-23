@@ -7,6 +7,7 @@ import { useMultiplayerGame } from '@/hooks/useMultiplayerGame';
 import { generateCorridorGridWithRewards, getSpawnEdges } from '@/utils/hexUtils';
 import { CARD_TEMPLATES } from '@/utils/cardTemplates';
 import Game from './Game';
+import VictorySplash from './VictorySplash';
 
 interface MultiplayerGameProps {
   socket: Socket;
@@ -14,6 +15,7 @@ interface MultiplayerGameProps {
   playerSlot: 'player1' | 'player2';
   players: { player1?: any; player2?: any };
   onDisconnect: () => void;
+  onReturnToMenu?: () => void;
 }
 
 const MultiplayerGame: React.FC<MultiplayerGameProps> = ({
@@ -22,6 +24,7 @@ const MultiplayerGame: React.FC<MultiplayerGameProps> = ({
   playerSlot,
   players,
   onDisconnect,
+  onReturnToMenu,
 }) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [connectionError, setConnectionError] = useState<string>('');
@@ -308,6 +311,7 @@ const MultiplayerGame: React.FC<MultiplayerGameProps> = ({
           player1: players.player1?.name,
           player2: players.player2?.name
         }}
+        onReturnToMenu={onReturnToMenu}
       />
     </div>
   );

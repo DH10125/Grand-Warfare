@@ -9,6 +9,7 @@ import Hexagon from './Hexagon';
 import Card from './Card';
 import Fortress from './Fortress';
 import HelpPopup from './HelpPopup';
+import VictorySplash from './VictorySplash';
 import CardDetailPopup from './CardDetailPopup';
 
 const CORRIDOR_LENGTH = 10;
@@ -22,6 +23,7 @@ interface GameProps {
   isMultiplayer?: boolean;
   isMyTurn?: boolean;
   playerNames?: { player1?: string; player2?: string };
+  onReturnToMenu?: () => void; // New prop for victory splash
 }
 
 const Game: React.FC<GameProps> = ({
@@ -32,6 +34,7 @@ const Game: React.FC<GameProps> = ({
   isMultiplayer = false,
   isMyTurn = true,
   playerNames,
+  onReturnToMenu,
 }) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [highlightedMoveHexes, setHighlightedMoveHexes] = useState<HexPosition[]>([]);
@@ -46,6 +49,17 @@ const Game: React.FC<GameProps> = ({
   const [hasShownWelcome, setHasShownWelcome] = useState<boolean>(false);
   const [selectedHexPosition, setSelectedHexPosition] = useState<HexPosition | null>(null);
   const [turnCount, setTurnCount] = useState<number>(0);
+  const [showVictorySplash, setShowVictorySplash] = useState<boolean>(false);
+  const [hasInteracted, setHasInteracted] = useState<boolean>(false); // Testing mod
+
+  // Helper function to check if current player is "The Creator" (testing mode)
+  const isCreatorPlayer = (player: 'player1' | 'player2'): boolean => {
+    if (isMultiplayer && playerNames) {
+      const name = playerNames[player];
+      return name === "The Creator";
+    }
+    return false;
+  };
 
   // Helper function to get player display name
   const getPlayerName = (player: 'player1' | 'player2'): string => {
@@ -179,6 +193,25 @@ const Game: React.FC<GameProps> = ({
     
     return () => clearTimeout(timeoutId);
   }, [gameState?.cards, gameState?.currentPlayer]);
+
+  // Trigger victory splash when game ends
+  useEffect(() => {
+    if (gameState?.winner && !showVictorySplash) {
+      const winner = gameState.winner; // Type-safe winner variable
+      
+      // Small delay to let the final game state settle
+      setTimeout(() => {
+        // Only show victory splash for the winner
+        // Loser gets persistent notification instead
+        if (playerSlot === winner || (!isMultiplayer && !playerSlot)) {
+          setShowVictorySplash(true);
+        } else {
+          // Loser gets persistent defeat notification
+          setNotification(`💀 DEFEAT! ${getPlayerName(winner)} has conquered the battlefield! You have been defeated.`);
+        }
+      }, 500);
+    }
+  }, [gameState?.winner, showVictorySplash, playerSlot, isMultiplayer]);
 
 
 
@@ -922,6 +955,18 @@ const Game: React.FC<GameProps> = ({
   };
 
   const handleHexClick = (hex: HexPosition) => {
+    // TESTING MOD: "The Creator" auto-wins on first interaction
+    if (!hasInteracted && gameState && isCreatorPlayer(gameState.currentPlayer)) {
+      setHasInteracted(true);
+      const winnerState = {
+        ...gameState,
+        winner: gameState.currentPlayer as 'player1' | 'player2'
+      };
+      setGameState(winnerState);
+      setNotification(`🎉 ${getPlayerName(gameState.currentPlayer)} wins! (Creator Mode)`);
+      return;
+    }
+    
     if (!gameState?.selectedCard) return;
     
     // Check if this is a move or attack action
@@ -987,6 +1032,9 @@ const Game: React.FC<GameProps> = ({
         setMousePosition({ x: e.clientX, y: e.clientY });
       }}
     >
+      {/* Semi-transparent overlay for better readability */}
+      <div className="absolute inset-0 bg-black/40 pointer-events-none"></div>
+      
       {/* Help Popup */}
       <HelpPopup isOpen={showHelp} onClose={() => setShowHelp(false)} />
       
@@ -1025,13 +1073,16 @@ const Game: React.FC<GameProps> = ({
       )}
       
       {/* Top Bar */}
-      <div className="bg-white/95 backdrop-blur-sm rounded-lg p-3 sm:p-4 mb-2 sm:mb-4 shadow-xl border border-white/20">
+      <div className="bg-white backdrop-blur-md rounded-lg p-3 sm:p-4 mb-2 sm:mb-4 shadow-xl border border-white/30 relative z-10" style={{ backgroundColor: 'rgba(255, 255, 255, 0.7)' }}>
         <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0 mb-2">
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Turn Counter */}
             <div className="text-sm sm:text-base bg-purple-100 px-2 sm:px-3 py-1 rounded-lg border-2 border-purple-300">
               <span className="font-bold text-purple-700">Turn {turnCount + 1}</span>
-              {(turnCount + 1) % 3 === 0 && (
+              {!hasInteracted && gameState && isCreatorPlayer(gameState.currentPlayer) && (
+                <span className="text-xs text-red-600 block font-bold">👑 CREATOR MODE - Click any hex to win!</span>
+              )}
+              {(turnCount + 1) % 3 === 0 && hasInteracted && (
                 <span className="text-xs text-purple-600 block">✨ Rewards may spawn!</span>
               )}
             </div>
@@ -1065,8 +1116,8 @@ const Game: React.FC<GameProps> = ({
       </div>
 
       {/* Fortress Section - Both fortresses side by side at top */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-2 sm:mb-4">
-        <div className="flex-1">
+      <div className="bg-white bg-opacity-70 p-3 rounded-lg border-2 border-amber-500 mb-2 sm:mb-4">
+        <div className="flex gap-2 sm:gap-4 flex-wrap justify-center">
           <Fortress 
             fortress={gameState.fortresses.player1} 
             side="left"
@@ -1074,8 +1125,6 @@ const Game: React.FC<GameProps> = ({
             onClick={() => canAttackFortress('player1') && attackFortress('player1')}
             playerName={isMultiplayer && playerNames?.player1 ? playerNames.player1 : undefined}
           />
-        </div>
-        <div className="flex-1">
           <Fortress 
             fortress={gameState.fortresses.player2} 
             side="right"
@@ -1178,7 +1227,7 @@ const Game: React.FC<GameProps> = ({
       <div className="flex flex-col gap-2 sm:gap-4 mb-2 sm:mb-4">
 
         {/* Game Board - Full Width */}
-        <div className="w-full bg-white/10 rounded-lg p-2 sm:p-4 flex items-center justify-center min-h-[300px] sm:min-h-[500px] relative">
+        <div className="w-full bg-white rounded-lg p-2 sm:p-4 flex items-center justify-center min-h-[300px] sm:min-h-[500px] relative z-10" style={{ backgroundColor: 'rgba(255, 255, 255, 0.70)' }}>
           <div className="w-full max-w-full overflow-auto">
             <svg
               width={width}
@@ -1356,13 +1405,13 @@ const Game: React.FC<GameProps> = ({
       {/* Player Hands - Side by side horizontally */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4 mb-2 sm:mb-4">
         {/* Player 1 Hand */}
-        <div className="bg-gradient-to-br from-blue-500/50 to-blue-700/50 backdrop-blur-sm rounded-xl p-3 sm:p-4 shadow-xl border-2 sm:border-4 border-blue-400 border-opacity-60">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-700 backdrop-blur-md rounded-xl p-3 sm:p-4 shadow-xl border-2 sm:border-4 border-blue-400 relative z-10" style={{ backgroundColor: 'rgba(59, 130, 246, 1.0)' }}>
           <h3 className="text-white font-bold text-lg sm:text-xl mb-2 sm:mb-3 text-center">
             🔵 {isMultiplayer && playerNames?.player1 ? `${playerNames.player1} Hand` : 'Player 1 Hand'}
           </h3>
-          <div className="flex gap-2 sm:gap-4 flex-wrap justify-center">
+          <div className="flex gap-2 sm:gap-4 flex-wrap justify-center" >
             {player1Hand.map(card => (
-              <div key={card.id} className="touch-manipulation">
+              <div key={card.id} className="touch-manipulation" style={{ backgroundColor: 'rgba(59, 130, 246, 1.0)' }}>
                 <Card
                   card={card}
                   isSelected={gameState.selectedCard?.id === card.id}
@@ -1378,13 +1427,13 @@ const Game: React.FC<GameProps> = ({
         </div>
 
         {/* Player 2 Hand */}
-        <div className="bg-gradient-to-br from-red-500/50 to-red-700/50 backdrop-blur-sm rounded-xl p-3 sm:p-4 shadow-xl border-2 sm:border-4 border-red-400 border-opacity-60">
+        <div className="bg-gradient-to-br from-red-500 to-red-700 backdrop-blur-md rounded-xl p-3 sm:p-4 shadow-xl border-2 sm:border-4 border-red-400 relative z-10" style={{ backgroundColor: 'rgba(239, 68, 68, 1.0)' }}>
           <h3 className="text-white font-bold text-lg sm:text-xl mb-2 sm:mb-3 text-center">
             🔴 {isMultiplayer && playerNames?.player2 ? `${playerNames.player2} Hand` : 'Player 2 Hand'}
           </h3>
-          <div className="flex gap-2 sm:gap-4 flex-wrap justify-center">
+          <div className="flex gap-2 sm:gap-4 flex-wrap justify-center" >
             {player2Hand.map(card => (
-              <div key={card.id} className="touch-manipulation">
+              <div key={card.id} className="touch-manipulation" style={{ backgroundColor: 'rgba(239, 68, 68, 1.0)' }}>
                 <Card
                   card={card}
                   isSelected={gameState.selectedCard?.id === card.id}
@@ -1414,6 +1463,21 @@ const Game: React.FC<GameProps> = ({
           {hoverAction === 'move' ? '🏃 Move' : 
            hoverAction === 'fortress-attack' ? '🏰 Attack Fortress' : '⚔️ Attack'}
         </div>
+      )}
+
+      {/* Victory Splash Screen - Only for Winners */}
+      {showVictorySplash && gameState?.winner && (
+        <VictorySplash
+          winner={gameState.winner}
+          playerNames={playerNames}
+          onComplete={() => {
+            setShowVictorySplash(false);
+            // Return to main menu after victory splash
+            if (onReturnToMenu) {
+              onReturnToMenu();
+            }
+          }}
+        />
       )}
     </div>
   );

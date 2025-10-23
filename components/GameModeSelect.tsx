@@ -10,7 +10,7 @@ interface GameModeSelectProps {
 const GameModeSelect: React.FC<GameModeSelectProps> = ({ onModeSelect }) => {
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4"
+      className="min-h-screen flex items-center justify-center p-6 sm:p-8"
       style={{
         backgroundImage: 'url(/backgrounds/battle-scene-1.png)',
         backgroundSize: 'cover',
@@ -21,10 +21,10 @@ const GameModeSelect: React.FC<GameModeSelectProps> = ({ onModeSelect }) => {
     >
       {/* Enhanced semi-transparent overlay for better readability */}
       <div className="absolute inset-0 bg-black/60"></div>
-      <div className="bg-white/70 backdrop-blur-md rounded-3xl p-8 shadow-2xl max-w-lg w-full relative z-10 border border-white/30" style={{ backgroundColor: 'rgba(255, 255, 255, 0.70)' }}>
+      <div className="bg-white/70 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl max-w-lg w-full mx-4 relative z-10 border border-white/30" style={{ backgroundColor: 'rgba(255, 255, 255, 0.70)' }}>
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">⚔️ Grand Warfare</h1>
-          <p className="text-lg text-gray-600">Choose your game mode</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-2 px-2">⚔️ Grand Warfare</h1>
+          <p className="text-lg text-gray-600 px-2">Choose your game mode</p>
         </div>
         
         <div className="space-y-4">
