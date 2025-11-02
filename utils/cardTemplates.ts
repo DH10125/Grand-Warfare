@@ -19,8 +19,8 @@ export const CARD_TEMPLATES: CardTemplate[] = [
   },
   {
     name: 'Mouse',
-    hitPoints: 30,
-    maxHitPoints: 30,
+    hitPoints: 35,
+    maxHitPoints: 35,
     speed: 2,
     range: 1,
     imageUrl: '/cards/mouse.svg',
