@@ -50,7 +50,7 @@ const HelpPopup: React.FC<HelpPopupProps> = ({ isOpen, onClose }) => {
               <span className="text-2xl">⚡</span>
               <div>
                 <strong className="text-lg">Action Points (AP):</strong>
-                <p className="text-sm">Units get 1 AP at the start of their owner's turn. Units cannot act on the turn they're placed. Use AP to move or attack!</p>
+                <p className="text-sm">Units get 2 AP at the start of their owner's turn. Units cannot act on the turn they're placed. Use AP to move or attack!</p>
               </div>
             </li>
             <li className="flex items-start gap-3">
