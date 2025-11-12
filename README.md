@@ -62,7 +62,7 @@ Open [http://localhost:3000](http://localhost:3000) to play the game.
 3. Units **cannot act on the turn they're placed** - they need to wait until your next turn
 
 ### Moving Units
-1. **Wait for your turn** - Units get 1 Action Point (AP) at the start of their owner's turn (shown as a green circle with "1")
+1. **Wait for your turn** - Units get 2 Action Points (AP) at the start of their owner's turn (shown as a green circle with "2")
 2. **Click on a unit** with AP to select it
 3. **Click the "Move" button** - This will highlight all hexes within the unit's movement range
 4. **Click on a highlighted hex** to move there
@@ -71,7 +71,7 @@ Open [http://localhost:3000](http://localhost:3000) to play the game.
    - **Strategy**: Balance between advancing toward the enemy fortress and collecting powerful cards
 
 ### Attacking
-1. **Select a unit** with AP (green circle with "1")
+1. **Select a unit** with AP (green circle with "2")
 2. **Click the "Attack" button** - This will highlight all tiles within the unit's attack range
 3. **Click on a target** to attack:
    - Click on an **enemy unit** to damage it

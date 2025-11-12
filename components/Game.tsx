@@ -635,7 +635,7 @@ const Game: React.FC = () => {
     
     // Reset AP for all cards owned by the next player
     const updatedCards = gameState.cards.map(c => 
-      c.owner === nextPlayer && c.position ? { ...c, ap: 1 } : c
+      c.owner === nextPlayer && c.position ? { ...c, ap: 2 } : c
     );
 
     // Check for victory condition after updating cards

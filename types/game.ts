@@ -8,7 +8,7 @@ export interface Card {
   imageUrl: string;
   owner: 'player1' | 'player2';
   position?: HexPosition;
-  ap: number; // Action points (0 or 1)
+  ap: number; // Action points (0, 1, or 2)
 }
 
 export interface HexPosition {
