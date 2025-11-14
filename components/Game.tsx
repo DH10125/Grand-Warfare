@@ -10,6 +10,7 @@ import Card from './Card';
 import Fortress from './Fortress';
 import HelpPopup from './HelpPopup';
 import CardDetailPopup from './CardDetailPopup';
+import CardLibraryPopup from './CardLibraryPopup';
 
 const CORRIDOR_LENGTH = 10;
 const CORRIDOR_WIDTH = 4;
@@ -23,6 +24,7 @@ const Game: React.FC = () => {
   const [hoverAction, setHoverAction] = useState<'move' | 'attack' | 'fortress-attack' | null>(null);
   const [notification, setNotification] = useState<string>('');
   const [showHelp, setShowHelp] = useState<boolean>(false);
+  const [showCardLibrary, setShowCardLibrary] = useState<boolean>(false);
   const [cardDetailView, setCardDetailView] = useState<CardType | null>(null);
   const [cardDetailPopup, setCardDetailPopup] = useState<CardType | null>(null);
   const [hasShownWelcome, setHasShownWelcome] = useState<boolean>(false);
@@ -788,6 +790,9 @@ const Game: React.FC = () => {
       {/* Help Popup */}
       <HelpPopup isOpen={showHelp} onClose={() => setShowHelp(false)} />
       
+      {/* Card Library Popup */}
+      <CardLibraryPopup isOpen={showCardLibrary} onClose={() => setShowCardLibrary(false)} />
+      
       {/* Card Detail Popup */}
       <CardDetailPopup 
         card={cardDetailPopup} 
@@ -1207,6 +1212,16 @@ const Game: React.FC = () => {
            hoverAction === 'fortress-attack' ? '🏰 Attack Fortress' : '⚔️ Attack'}
         </div>
       )}
+
+      {/* Card Library Button - Bottom Left Corner */}
+      <button
+        onClick={() => setShowCardLibrary(true)}
+        className="fixed bottom-4 left-4 bg-gradient-to-br from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-bold p-4 rounded-full shadow-2xl transform hover:scale-110 transition-all z-40 border-4 border-amber-300"
+        title="View Card Library"
+        aria-label="View Card Library"
+      >
+        <span className="text-3xl">🃏</span>
+      </button>
     </div>
   );
 };
